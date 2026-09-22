@@ -65,9 +65,14 @@
             </div>
 
             <div>
-                <label style="font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
-                <input type="password" name="password" required placeholder="••••••••" class="form-input" style="width: 100%;">
-            </div>
+    <label style="font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
+    <div style="position: relative;">
+        <input type="password" id="loginPassword" name="password" required placeholder="••••••••" class="form-input" style="width: 100%; padding-right: 40px;">
+        <button type="button" onclick="togglePasswordVisibility('loginPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280; display: flex; align-items: center;">
+    <svg class="icon-sm password-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
+    </div>
+</div>
 
             <div style="text-align: center; margin-top: 6px;">
                 <button type="submit" class="btn-primary" style="padding: 12px 36px; font-size: 13px; width: 100%; max-width: 260px; margin: 0 auto; display: inline-flex; justify-content: center;">
