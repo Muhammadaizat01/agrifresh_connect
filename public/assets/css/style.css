@@ -1859,3 +1859,51 @@ section > .text-center > p {
     font-weight: 600 !important;
     text-shadow: 0 1px 3px rgba(255, 255, 255, 0.95) !important;
 }
+
+html, body { overflow-x: hidden !important; }
+img { max-width: 100%; height: auto; }
+
+@media (max-width: 768px) {
+    .header-inner, .nav-container {
+        height: 56px !important;
+        padding: 0 12px !important;
+    }
+
+    .nav-links {
+        display: none !important;
+    }
+
+    .header-actions, .nav-actions {
+        gap: 4px !important;
+    }
+
+    .btn-scanner span:last-child,
+    .btn-role-pill span:last-child {
+        display: none !important;
+    }
+    .btn-scanner, .btn-role-pill {
+        padding: 7px !important;
+    }
+
+    .btn-header-user {
+        max-width: 110px !important;
+    }
+    .btn-header-user span:first-child {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .hero-heading { font-size: 1.9rem !important; }
+    .hero-desc { font-size: 13.5px !important; }
+    .sec-title { font-size: 20px !important; }
+    .container-custom { padding: 0 1rem !important; }
+}
+
+@media (max-width: 420px) {
+    .hero-heading { font-size: 1.6rem !important; }
+    .btn-header-user { display: none !important; } 
+}
