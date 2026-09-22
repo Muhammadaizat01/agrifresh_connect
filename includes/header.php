@@ -2,6 +2,11 @@
 require_once __DIR__ . '/../config/db.php';
 global $pageTitle, $activePage, $lang, $txt;
 
+function shortName(string $name, int $wordLimit = 1): string {
+    $parts = preg_split('/\s+/', trim($name));
+    return implode(' ', array_slice($parts, 0, $wordLimit));
+}
+
 $user = currentUser();
 
 $userRole = '';
@@ -83,9 +88,8 @@ if ($user) {
            title="Open Dashboard"
            style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 9999px; color: #065f46; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
 
-            <span>👤 <?= htmlspecialchars($user['name']) ?></span>
+            <span title="<?= htmlspecialchars($user['name']) ?>">👤 <?= htmlspecialchars(shortName($user['name'])) ?></span>
             <span class="user-arrow" style="font-weight: 800; color: #059669;">&rarr;</span>
-
         </a>
 
     </div>
@@ -154,7 +158,7 @@ if ($user) {
                         <a href="logout.php" class="dropdown-item" style="color: #dc2626;">
                             <span>🚪</span>
                             <div>
-                                <strong>Sign Out (<?= htmlspecialchars($user['name']) ?>)</strong>
+                            <strong title="<?= htmlspecialchars($user['name']) ?>">Sign Out (<?= htmlspecialchars(shortName($user['name'])) ?>)</strong>
                             </div>
                         </a>
                     <?php else: ?>
