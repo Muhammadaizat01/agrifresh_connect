@@ -2,10 +2,6 @@
 // Cart, QR Generator, Scanner Simulator, & Modals
 
 let cart = JSON.parse(localStorage.getItem('af_cart')) || [];
-    { id: 1, name: "Lunas Sweet Roma Tomatoes", price: 4.20, unit: "kg", qty: 2, batchId: "AF-LUN-2026-089", image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300" },
-    { id: 2, name: "Hydroponic Butterhead Lettuce", price: 4.50, unit: "250g pack", qty: 1, batchId: "AF-KLM-2026-042", image: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=300" }
-];
-
 function saveCart() {
     localStorage.setItem('af_cart', JSON.stringify(cart));
     updateCartUI();
