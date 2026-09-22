@@ -7,18 +7,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_host = 'localhost';
-$db_name = 'agrifresh_connect';
-$db_user = 'root';
-$db_pass = '';
+$db_host = getenv('DB_HOST') ?: 'localhost';
+$db_port = getenv('DB_PORT') ?: '3306';
+$db_name = getenv('DB_DATABASE') ?: 'agrifresh_connect';
+$db_user = getenv('DB_USERNAME') ?: 'root';
+$db_pass = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '';
 
 try {
-    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass, [
+    $dsn = "mysql:host={$db_host};port={$db_port};dbname={$db_name};charset=utf8mb4";
+    $pdo = new PDO($dsn, $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
 } catch (PDOException $e) {
-    die("<div style='font-family:sans-serif;padding:20px;background:#fee2e2;color:#991b1b;border-radius:12px;margin:20px;'><strong>Database Connection Notice:</strong> " . $e->getMessage() . "<br>Please start MySQL in XAMPP and make sure database <code>agrifresh_connect</code> is created in phpMyAdmin.</div>");
+    die("<div style='font-family:sans-serif;padding:20px;background:#fee2e2;color:#991b1b;border-radius:12px;margin:20px;'><strong>Database Connection Notice:</strong> " . $e->getMessage() . "<br>Please ensure database credentials and host are configured properly in environment variables or phpMyAdmin.</div>");
 }
 
 // Language Handling
