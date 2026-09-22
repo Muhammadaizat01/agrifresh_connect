@@ -7,14 +7,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$db_conn = getenv('DB_CONNECTION') ?: 'mysql';
 $db_host = getenv('DB_HOST') ?: 'localhost';
-$db_port = getenv('DB_PORT') ?: '3306';
+$db_port = getenv('DB_PORT') ?: ($db_conn === 'pgsql' ? '5432' : '3306');
 $db_name = getenv('DB_DATABASE') ?: 'agrifresh_connect';
 $db_user = getenv('DB_USERNAME') ?: 'root';
 $db_pass = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '';
 
 try {
-    $dsn = "mysql:host={$db_host};port={$db_port};dbname={$db_name};charset=utf8mb4";
+    if ($db_conn === 'pgsql') {
+        $dsn = "pgsql:host={$db_host};port={$db_port};dbname={$db_name};sslmode=require";
+    } else {
+        $dsn = "mysql:host={$db_host};port={$db_port};dbname={$db_name};charset=utf8mb4";
+    }
     $pdo = new PDO($dsn, $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
