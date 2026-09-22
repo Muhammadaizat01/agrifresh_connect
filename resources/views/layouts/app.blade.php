@@ -65,7 +65,7 @@
 
         <a href="index.php" class="brand-logo-wrap">
             <div class="brand-logo-img">
-                <img src="assets/img/agrifresh_logo.png" alt="AgriFresh Logo">
+                <img src="{{ asset('assets/img/agrifresh_logo.png') }}" alt="AgriFresh Logo" style="width: 38px; height: 38px; object-fit: contain;">
             </div>
             <div class="brand-text">
                 <span class="brand-main">AgriFresh</span>
