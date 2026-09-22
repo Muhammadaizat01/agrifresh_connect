@@ -7,7 +7,7 @@
             <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px; border: 2px solid #10b981;">
                 <img src="{{ asset('assets/img/agrifresh_logo.png') }}" alt="AgriFresh Logo" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
-            <h1 style="font-size: 24px; font-weight: 900; color: #111827;">Sign In (Laravel 12 MVC)</h1>
+            <h1 style="font-size: 24px; font-weight: 900; color: #111827;">Sign In to AgriFresh</h1>
             <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Direct marketplace for Famox Kedah supplier farmers</p>
         </div>
 
