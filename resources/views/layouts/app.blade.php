@@ -44,6 +44,7 @@
 
         // Clean any pre-existing duplicate '(Buyer)' text stored inside user name string
         $cleanUserName = $authUser ? trim(preg_replace('/\s*\((?:Buyer|Farmer|Admin)\)/i', '', $authUser['name'] ?? 'User')) : '';
+        $cleanUserName = $cleanUserName ? explode(' ', $cleanUserName)[0] : '';
         
         $currentLang = app()->getLocale();
         $targetLang = $currentLang === 'ms' ? 'en' : 'ms';
