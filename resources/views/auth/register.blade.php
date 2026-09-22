@@ -46,9 +46,12 @@
                 <input type="email" name="email" required placeholder="name@example.com" class="form-input" style="width: 100%;">
             </div>
 
-            <div>
+            div>
                 <label style="font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
                 <input type="password" name="password" required placeholder="Create a secure password" class="form-input" style="width: 100%;">
+                <button type="button" onclick="togglePasswordVisibility('loginPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280; display: flex; align-items: center;">
+                <svg class="icon-sm password-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
