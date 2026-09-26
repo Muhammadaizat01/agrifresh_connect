@@ -304,4 +304,20 @@ class FarmerController extends Controller
             return redirect()->route('farmer.dashboard')->withErrors(['msg' => 'Could not decline order: ' . $e->getMessage()]);
         }
     }
+
+    public function restockProduce(Request $request, int $id)
+    {
+        try {
+            $product = Product::findOrFail($id);
+            $qty = (float)$request->input('stock_quantity', 50);
+            if ($qty <= 0) $qty = 50;
+
+            $product->quantity_available = $qty;
+            $product->save();
+
+            return redirect()->route('farmer.dashboard')->with('success', "Success! Produce '{$product->name}' stock has been updated to {$qty} {$product->unit} and is now 🟢 In Stock in the Storefront!");
+        } catch (\Throwable $e) {
+            return redirect()->route('farmer.dashboard')->withErrors(['msg' => 'Could not restock produce: ' . $e->getMessage()]);
+        }
+    }
 }

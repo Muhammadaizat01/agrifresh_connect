@@ -200,6 +200,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && 
     }
 }
 
+// Handle Quick Restock POST
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'quick_restock') {
+    $resId = intval($_POST['product_id'] ?? 0);
+    $qty = floatval($_POST['stock_quantity'] ?? 50);
+    if ($qty <= 0) $qty = 50;
+
+    if ($resId > 0) {
+        $pStmt = $pdo->prepare("SELECT name, unit FROM products WHERE id = ?");
+        $pStmt->execute([$resId]);
+        $prodInfo = $pStmt->fetch();
+        if ($prodInfo) {
+            $pdo->prepare("UPDATE products SET quantity_available = ? WHERE id = ?")->execute([$qty, $resId]);
+            $msg = "Success! Produce <strong>" . htmlspecialchars($prodInfo['name']) . "</strong> has been restocked to <strong>{$qty} " . htmlspecialchars($prodInfo['unit']) . "</strong> and is now <strong>🟢 In Stock in the Storefront</strong>.";
+        }
+    }
+}
+
 // Handle Decline Order POST
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'decline_order') {
     $decOrderId = intval($_POST['order_id'] ?? 0);
@@ -507,7 +524,10 @@ include __DIR__ . '/includes/header.php';
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <div style="font-size: 14px; font-weight: 800; color: #111827;"><?= htmlspecialchars($fp['name']) ?></div>
                                     <?php if ($isSoldOut): ?>
-                                        <span style="background: #fee2e2; color: #dc2626; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; border: 1px solid #fecaca;">🔴 SOLD OUT</span>
+                                        <button type="button" onclick="openRestockModal('<?= $fp['id'] ?>', '<?= htmlspecialchars(addslashes($fp['name'])) ?>', '<?= htmlspecialchars($fp['unit']) ?>')" style="background: #fee2e2; color: #dc2626; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; border: 1.5px solid #fca5a5; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Click to quickly restock this produce">
+                                            <span>🔴 SOLD OUT</span>
+                                            <span style="background: #dc2626; color: #fff; font-size: 8px; padding: 1px 4px; border-radius: 4px;">Restock ↻</span>
+                                        </button>
                                     <?php else: ?>
                                         <span style="background: #dcfce7; color: #16a34a; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 9999px; border: 1px solid #bbf7d0;">🟢 In Stock</span>
                                     <?php endif; ?>
@@ -522,6 +542,11 @@ include __DIR__ . '/includes/header.php';
                         </div>
 
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <?php if ($isSoldOut): ?>
+                                <button type="button" onclick="openRestockModal('<?= $fp['id'] ?>', '<?= htmlspecialchars(addslashes($fp['name'])) ?>', '<?= htmlspecialchars($fp['unit']) ?>')" style="background: #ecfdf5; color: #065f46; border: 1.5px solid #10b981; padding: 6px 14px; font-size: 11px; border-radius: 8px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(16,185,129,0.15);" title="Restock this produce to mark it back In Stock">
+                                    <span>🟢 Restock Crop</span>
+                                </button>
+                            <?php endif; ?>
                             <button type="button" onclick='openEditCropModal(<?= json_encode($fp, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)' class="btn-emerald" style="padding: 6px 14px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
                                 ✏️ <span>Edit Crop & Photo</span>
                             </button>
@@ -855,6 +880,13 @@ include __DIR__ . '/includes/header.php';
                         </button>
                     </div>
                     <input type="number" step="any" min="0" name="stock" id="editCropStock" class="form-input" style="width: 100%;">
+                    <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center;">
+                        <span style="font-size: 10px; color: #6b7280; font-weight: 700;">Quick Set:</span>
+                        <button type="button" onclick="document.getElementById('editCropStock').value = 25;" style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; cursor: pointer;">25</button>
+                        <button type="button" onclick="document.getElementById('editCropStock').value = 50;" style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; cursor: pointer;">50</button>
+                        <button type="button" onclick="document.getElementById('editCropStock').value = 100;" style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; cursor: pointer;">100</button>
+                        <button type="button" onclick="document.getElementById('editCropStock').value = 200;" style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; cursor: pointer;">200</button>
+                    </div>
                 </div>
                 <div>
                     <label style="font-weight: 700; display: block; margin-bottom: 4px;">Quality Standard</label>
@@ -1018,14 +1050,40 @@ function handleDeclineReasonChange(sel) {
     }
 }
 
+// Restock Modal Handlers
+function openRestockModal(prodId, prodName, unit) {
+    const modal = document.getElementById('restockModalBackdrop');
+    const prodInput = document.getElementById('restockProductId');
+    const tag = document.getElementById('restockModalCropTag');
+    const unitTag = document.getElementById('restockUnitTag');
+    if (modal && prodInput) {
+        prodInput.value = prodId;
+        if (tag) tag.innerText = 'Crop: ' + prodName;
+        if (unitTag) unitTag.innerText = unit || 'kg';
+        modal.style.display = 'flex';
+    }
+}
+
+function closeRestockModal() {
+    const modal = document.getElementById('restockModalBackdrop');
+    if (modal) modal.style.display = 'none';
+}
+
+function setRestockQty(qty) {
+    const inp = document.getElementById('restockQuantityInput');
+    if (inp) inp.value = qty;
+}
+
 // Close modals when clicking on backdrop
 window.addEventListener('click', function(e) {
     const profileModal = document.getElementById('profileModalBackdrop');
     const cropModal = document.getElementById('editCropModalBackdrop');
     const declineModal = document.getElementById('declineOrderModalBackdrop');
+    const restockModal = document.getElementById('restockModalBackdrop');
     if (e.target === profileModal) profileModal.style.display = 'none';
     if (e.target === cropModal) cropModal.style.display = 'none';
     if (e.target === declineModal) declineModal.style.display = 'none';
+    if (e.target === restockModal) restockModal.style.display = 'none';
 });
 
 // Submit Feedback Handlers
@@ -1098,6 +1156,51 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" onclick="closeDeclineOrderModal()" class="btn-dark" style="padding: 10px 18px; font-size: 12px; cursor: pointer;">Cancel</button>
                 <button type="submit" style="background: #dc2626; color: #ffffff; border: none; border-radius: 12px; padding: 10px 22px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(220,38,38,0.3);">
                     <span>Confirm Decline & Send Apology</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 4: Quick Restock Produce Modal -->
+<div id="restockModalBackdrop" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; width: 100%; max-width: 480px; border-radius: 28px; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">🟢</span>
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 800; color: #111827;">Restock Fresh Produce</h3>
+                    <p style="font-size: 11px; color: #6b7280;" id="restockModalCropTag">Produce: ...</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeRestockModal()" style="background: none; border: none; font-size: 24px; color: #9ca3af; cursor: pointer;">&times;</button>
+        </div>
+
+        <form method="POST" id="restockForm" action="farmer_dashboard.php" style="display: flex; flex-direction: column; gap: 16px; font-size: 12px;">
+            <input type="hidden" name="action" value="quick_restock">
+            <input type="hidden" name="product_id" id="restockProductId" value="">
+
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 16px; padding: 14px; color: #065f46; line-height: 1.4;">
+                <strong>🌱 Putting Produce Back In Stock:</strong> Entering available stock will immediately change status from 🔴 <strong>SOLD OUT</strong> to 🟢 <strong>In Stock</strong> live on the Storefront!
+            </div>
+
+            <div>
+                <label style="font-weight: 700; display: block; margin-bottom: 6px;">Quick Quantity Presets</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <button type="button" onclick="setRestockQty(25)" style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 11px;">+25</button>
+                    <button type="button" onclick="setRestockQty(50)" style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 11px;">+50</button>
+                    <button type="button" onclick="setRestockQty(100)" style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 11px;">+100</button>
+                    <button type="button" onclick="setRestockQty(250)" style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 11px;">+250</button>
+                </div>
+
+                <label style="font-weight: 700; display: block; margin-bottom: 4px;">Available Harvest Stock Quantity (<span id="restockUnitTag">kg</span>)</label>
+                <input type="number" step="any" min="1" name="stock_quantity" id="restockQuantityInput" value="50" required class="form-input" style="width: 100%; font-size: 16px; font-weight: 800; color: #059669;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button type="button" onclick="closeRestockModal()" class="btn-dark" style="padding: 10px 18px; font-size: 12px; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn-primary" style="padding: 10px 22px; font-size: 12px; font-weight: 800; cursor: pointer;">
+                    <span>💾 Restock & Publish In Stock</span> &rarr;
                 </button>
             </div>
         </form>

@@ -110,6 +110,11 @@ Route::post(
 )->name('farmer.destroyProduce');
 
 Route::post(
+    '/farmer-dashboard/produce/{id}/restock',
+    [FarmerController::class, 'restockProduce']
+)->name('farmer.restockProduce');
+
+Route::post(
     '/farmer-dashboard/order/{id}/decline',
     [FarmerController::class, 'declineOrder']
 )->name('farmer.declineOrder');
@@ -127,6 +132,11 @@ Route::match(
         if ($request->isMethod('post')) {
 
             $action = $request->input('action');
+
+            if ($action === 'quick_restock') {
+                $productId = (int) $request->input('product_id');
+                return app(FarmerController::class)->restockProduce($request, $productId);
+            }
 
             if ($action === 'decline_order') {
                 $orderId = (int) $request->input('order_id');
