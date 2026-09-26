@@ -1,27 +1,7 @@
 // AgriFresh Connect Client Engine
 // Cart, QR Generator, Scanner Simulator, & Modals
 
-let cart = JSON.parse(localStorage.getItem('af_cart')) || [
-    {
-        id: 1,
-        name: "Lunas Sweet Roma Tomatoes",
-        price: 4.20,
-        unit: "kg",
-        qty: 2,
-        batchId: "AF-LUN-2026-089",
-        image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300"
-    },
-    {
-        id: 2,
-        name: "Hydroponic Butterhead Lettuce",
-        price: 4.50,
-        unit: "250g pack",
-        qty: 1,
-        batchId: "AF-KLM-2026-042",
-        image: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=300"
-    }
-];
-
+let cart = JSON.parse(localStorage.getItem('af_cart')) || [];
 
 /* ============================================================
    CART
@@ -509,12 +489,6 @@ function showToast(msg) {
     }
 }
 
-
-/* ============================================================
-   QR MODAL
-   GET PRODUCT FROM MYSQL
-============================================================ */
-
 async function openQRModalByBatch(batchId) {
 
     try {
@@ -564,11 +538,6 @@ async function openQRModalByBatch(batchId) {
     }
 }
 
-
-/* ============================================================
-   OPEN QR MODAL
-============================================================ */
-
 function openQRModal(data) {
 
     const modal =
@@ -579,10 +548,6 @@ function openQRModal(data) {
 
     if (!modal) return;
 
-
-    /* ========================================================
-       PRODUCT NAME
-    ======================================================== */
 
     const title =
         document.getElementById(
@@ -596,11 +561,6 @@ function openQRModal(data) {
             data.name ||
             'Harvest Provenance';
     }
-
-
-    /* ========================================================
-       BATCH ID
-    ======================================================== */
 
     const batchTag =
         document.getElementById(
@@ -617,11 +577,6 @@ function openQRModal(data) {
                 'Not available'
             );
     }
-
-
-    /* ========================================================
-       FARMER NAME
-    ======================================================== */
 
     const farmerName =
         document.getElementById(
@@ -840,3 +795,20 @@ document.addEventListener(
         updateCartUI();
     }
 );
+
+
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    const icon = btn.querySelector('.password-eye-icon');
+    if (!icon) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.innerHTML = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.62 21.62 0 0 1 5.06-6.06M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+        input.type = 'password';
+        icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+}

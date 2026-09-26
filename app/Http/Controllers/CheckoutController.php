@@ -39,6 +39,7 @@ class CheckoutController extends Controller
             'driver' => 'Famox Logistics Lunas Hub (Van KDH 4410)'
         ]);
 
+        $itemSummaryParts = [];
         foreach ($cartItems as $it) {
             OrderItem::create([
                 'order_id' => $order->id,
@@ -48,6 +49,48 @@ class CheckoutController extends Controller
                 'price' => $it['price'],
                 'subtotal' => $it['price'] * $it['qty']
             ]);
+
+            $itemSummaryParts[] = "{$it['name']} ({$it['qty']} {$it['unit']})";
+
+            // Deduct stock in products table
+            if (!empty($it['id'])) {
+                \App\Models\Product::where('id', $it['id'])
+                    ->update([
+                        'quantity_available' => \Illuminate\Support\Facades\DB::raw("GREATEST(0, quantity_available - " . floatval($it['qty']) . ")")
+                    ]);
+            }
+        }
+
+        $itemSummary = !empty($itemSummaryParts) ? implode(', ', $itemSummaryParts) : 'Fresh Produce';
+
+        // Notify Farmers in MySQL notifications table
+        $farmers = \App\Models\Farmer::all();
+        foreach ($farmers as $fm) {
+            if (!empty($fm->user_id)) {
+                \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                    'id' => \Illuminate\Support\Str::uuid()->toString(),
+                    'type' => 'App\Notifications\NewOrderReceived',
+                    'notifiable_type' => 'App\Models\User',
+                    'notifiable_id' => $fm->user_id,
+                    'data' => json_encode([
+                        'order_id' => $order->id,
+                        'order_number' => $orderNum,
+                        'buyer_name' => $request->input('name', $user['name']),
+                        'buyer_role' => $user['role_name'] ?? 'Direct Consumer',
+                        'phone' => $request->input('phone', $user['phone'] ?? '+60 19-334 8812'),
+                        'shipping_address' => $request->input('address', $user['address'] ?? 'No. 12, Jalan Lunas Makmur 3, 09600 Lunas, Kedah'),
+                        'total_amount' => $request->input('total_amount', 45.40),
+                        'batch_code' => $batchCode,
+                        'items' => $itemSummary,
+                        'driver' => 'Famox Logistics Lunas Hub (Van KDH 4410)',
+                        'message' => "New order {$orderNum} from " . $request->input('name', $user['name']) . " for {$itemSummary} (RM " . number_format($request->input('total_amount', 45.40), 2) . ")",
+                        'time' => date('d M Y, h:i A')
+                    ]),
+                    'read_at' => null,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
         }
 
         ActivityLog::create([

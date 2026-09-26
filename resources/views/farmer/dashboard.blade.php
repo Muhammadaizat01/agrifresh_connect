@@ -26,6 +26,10 @@
         </div>
 
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <a href="#orders" style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 9px 15px; border-radius: 14px; text-decoration: none; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+                <span>🔔</span>
+                <span>{{ $unreadCount ?? count($recentOrders) }} Orders to Fulfill</span>
+            </a>
             <button type="button" onclick="openProfileModal()" class="btn-dark" style="padding: 10px 18px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
                 <span>📷 Edit Profile & Photo</span>
             </button>
@@ -59,6 +63,36 @@
             @foreach($errors->all() as $err)
                 <div>• {{ $err }}</div>
             @endforeach
+        </div>
+    @endif
+
+    <!-- Real-Time Buyer Order Notifications Banner -->
+    @if(!$recentOrders->isEmpty())
+        @php $latestOrder = $recentOrders->first(); @endphp
+        <div style="background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 1.5px solid #10b981; border-radius: 24px; padding: 20px 24px; margin-bottom: 28px; box-shadow: 0 6px 20px rgba(16,185,129,0.12); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 48px; height: 48px; background: #10b981; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
+                    🔔
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; background: #10b981; color: #ffffff; padding: 2px 8px; border-radius: 6px; letter-spacing: 0.5px;">BUYER ORDER NOTIFICATION</span>
+                        <span style="font-size: 11px; color: #6b7280;">{{ $latestOrder->created_at ? date('d M Y, h:i A', strtotime($latestOrder->created_at)) : 'Just now' }}</span>
+                    </div>
+                    <div style="font-size: 15px; font-weight: 800; color: #111827; margin-top: 3px;">
+                        <span>Buyer <strong>{{ $latestOrder->buyer_name }}</strong> purchased vegetables</span>
+                        <span style="color: #059669; margin-left: 6px;">(RM {{ number_format($latestOrder->total_amount, 2) }})</span>
+                    </div>
+                    <div style="font-size: 12px; color: #374151; margin-top: 2px;">
+                        🏷️ Trace Batch: <strong class="font-mono text-emerald">{{ $latestOrder->batch_code }}</strong> • 📞 Contact: <strong>{{ $latestOrder->phone }}</strong> • 📍 {{ explode(',', $latestOrder->shipping_address)[0] }}
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="#orders" class="btn-primary" style="padding: 10px 20px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                    <span>View All Buyer Orders & Items &darr;</span>
+                </a>
+            </div>
         </div>
     @endif
 
@@ -240,22 +274,169 @@
             </form>
         </div>
 
-        <!-- Incoming Orders List -->
-        <div style="background: #ffffff; padding: 28px; border-radius: 28px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
-            <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">Incoming Orders to Fulfill</h2>
+        <!-- Incoming Orders from Buyers with Traceability & Items -->
+        <div id="orders" style="background: #ffffff; padding: 32px; border-radius: 28px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 22px;">📦</span>
+                        <h2 style="font-size: 18px; font-weight: 800; color: #111827;">Incoming Orders from Buyers & Traceability</h2>
+                    </div>
+                    <p style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                        Check who bought your vegetables, contact buyers, and trace each crop batch with verified QR passports.
+                    </p>
+                </div>
+                <div style="background: #ecfdf5; color: #065f46; font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 9999px; border: 1px solid #a7f3d0;">
+                    🔔 {{ count($recentOrders) }} Orders Recorded
+                </div>
+            </div>
 
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                @foreach($recentOrders as $ro)
-                    <div style="padding: 14px; background: #ecfdf5; border-radius: 16px; border: 1px solid #a7f3d0; font-size: 12px;">
-                        <div style="display: flex; justify-content: space-between; font-weight: 800; color: #111827; margin-bottom: 4px;">
-                            <span>{{ $ro->order_number }} • {{ $ro->buyer_name }}</span>
-                            <span style="color: #059669; font-size: 14px;">RM {{ number_format($ro->total_amount, 2) }}</span>
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                @forelse($recentOrders as $ro)
+                    @php
+                        $cleanPhone = preg_replace('/[^0-9]/', '', $ro->phone ?? '');
+                        if (str_starts_with($cleanPhone, '0')) {
+                            $cleanPhone = '60' . substr($cleanPhone, 1);
+                        }
+                    @endphp
+                    <div style="padding: 22px; background: #ffffff; border-radius: 22px; border: 1.5px solid #d1fae5; box-shadow: 0 4px 12px rgba(16,185,129,0.06); font-size: 12px;">
+                        <!-- Order Header Bar -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="font-family: monospace; font-weight: 800; font-size: 14px; background: #111827; color: #ffffff; padding: 4px 10px; border-radius: 8px;">
+                                    {{ $ro->order_number }}
+                                </span>
+                                <span style="background: #ecfdf5; color: #065f46; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; border: 1px solid #a7f3d0;">
+                                    ✓ {{ $ro->status }}
+                                </span>
+                                <span style="font-size: 11px; color: #6b7280;">
+                                    🗓️ {{ $ro->created_at ? date('d M Y, h:i A', strtotime($ro->created_at)) : 'Today' }}
+                                </span>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: #059669; font-size: 18px; font-weight: 900;">
+                                    RM {{ number_format($ro->total_amount, 2) }}
+                                </div>
+                                <div style="font-size: 10px; color: #6b7280;">
+                                    Paid via {{ $ro->payment_method }}
+                                </div>
+                            </div>
                         </div>
-                        <div style="font-size: 11px; color: #4b5563;">
-                            Status: <strong>{{ $ro->status }}</strong> • Driver: {{ $ro->driver }}
+
+                        <!-- Buyer Information & Contact -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 16px 0; padding: 14px; background: #f9fafb; border-radius: 16px; border: 1px solid #f3f4f6;">
+                            <div>
+                                <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #6b7280; margin-bottom: 4px;">
+                                    👤 Buyer Profile & Contact
+                                </div>
+                                <div style="font-size: 14px; font-weight: 800; color: #111827;">
+                                    {{ $ro->buyer_name }}
+                                </div>
+                                <div style="font-size: 11px; color: #059669; font-weight: 700; margin-top: 1px;">
+                                    🏷️ {{ $ro->buyer_role ?? 'Direct Consumer' }}
+                                </div>
+                                <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span style="font-size: 12px; color: #374151; font-weight: 600;">📞 {{ $ro->phone ?? 'Not provided' }}</span>
+                                    @if(!empty($ro->phone))
+                                        <a href="tel:{{ $ro->phone }}" style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 11px;">
+                                            Call
+                                        </a>
+                                        @if(!empty($cleanPhone))
+                                            <a href="https://wa.me/{{ $cleanPhone }}?text=Hi%20{{ urlencode($ro->buyer_name) }},%20this%20is%20your%20AgriFresh%20Kedah%20farmer%20regarding%20order%20{{ urlencode($ro->order_number) }}." target="_blank" style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 3px;">
+                                                <span>WhatsApp</span>
+                                            </a>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #6b7280; margin-bottom: 4px;">
+                                    🚚 Delivery Destination & Logistics
+                                </div>
+                                <div style="font-size: 12px; color: #111827; line-height: 1.4;">
+                                    📍 <strong>{{ $ro->shipping_address }}</strong>
+                                </div>
+                                <div style="font-size: 11px; color: #4b5563; margin-top: 4px;">
+                                    Assigned Van: <strong>{{ $ro->driver }}</strong>
+                                </div>
+                                @if(!empty($ro->notes))
+                                    <div style="font-size: 11px; color: #d97706; font-style: italic; margin-top: 3px;">
+                                        Note: "{{ $ro->notes }}"
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Vegetables Purchased Table -->
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #374151; margin-bottom: 8px;">
+                                🥬 Vegetables & Produce in this Order:
+                            </div>
+                            @if($ro->items && count($ro->items) > 0)
+                                <div style="overflow-x: auto;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                        <thead>
+                                            <tr style="background: #f0fdf4; border-bottom: 1.5px solid #bbf7d0; text-align: left;">
+                                                <th style="padding: 8px 12px; font-weight: 800; color: #065f46;">Produce Name</th>
+                                                <th style="padding: 8px 12px; font-weight: 800; color: #065f46; text-align: center;">Quantity Ordered</th>
+                                                <th style="padding: 8px 12px; font-weight: 800; color: #065f46; text-align: right;">Unit Price</th>
+                                                <th style="padding: 8px 12px; font-weight: 800; color: #065f46; text-align: right;">Subtotal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($ro->items as $item)
+                                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                                    <td style="padding: 10px 12px; font-weight: 700; color: #111827;">
+                                                        🌱 {{ $item->product_name }}
+                                                    </td>
+                                                    <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: #059669;">
+                                                        {{ number_format($item->quantity, 0) }} {{ $item->unit }}
+                                                    </td>
+                                                    <td style="padding: 10px 12px; text-align: right; color: #4b5563;">
+                                                        RM {{ number_format($item->price, 2) }}
+                                                    </td>
+                                                    <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #111827;">
+                                                        RM {{ number_format($item->subtotal, 2) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div style="background: #f9fafb; padding: 12px; border-radius: 12px; color: #6b7280; font-size: 12px;">
+                                    Direct harvest batch items tagged to <strong>{{ $ro->batch_code }}</strong>.
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Traceability & QR Actions Bar -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #f3f4f6; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 11px; color: #6b7280; font-weight: 700;">QR Trace Batch:</span>
+                                <span class="font-mono text-emerald" style="font-weight: 900; background: #ecfdf5; padding: 3px 8px; border-radius: 6px; border: 1px solid #a7f3d0; font-size: 11px;">
+                                    {{ $ro->batch_code }}
+                                </span>
+                            </div>
+
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                                <a href="{{ route('qr.verify', ['batch' => $ro->batch_code]) }}" target="_blank" class="btn-secondary" style="padding: 8px 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;">
+                                    <span>📱 Trace QR Passport</span> &rarr;
+                                </a>
+                                <button type="button" onclick="openQRModalByBatch('{{ $ro->batch_code }}')" class="btn-dark" style="padding: 8px 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;">
+                                    <span>🖨️ Print Crate QR Sticker</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                        <div style="font-size: 36px; margin-bottom: 8px;">🌱</div>
+                        <p style="font-weight: 700; color: #111827;">No orders received yet.</p>
+                        <p style="font-size: 12px; margin-top: 4px;">Orders placed by buyers will instantly appear here with full buyer details and traceability.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>

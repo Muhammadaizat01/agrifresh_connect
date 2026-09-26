@@ -9,10 +9,15 @@
             </div>
             <h1 style="font-size: 24px; font-weight: 900; color: #111827;">Thank You for Supporting Kedah Farmers!</h1>
             <p style="font-size: 13px; color: #6b7280; margin-top: 6px;">
-                Order <strong class="font-mono text-emerald">{{ $orderSuccess['orderNum'] }}</strong> has been recorded in MySQL via Laravel Eloquent.
+                Order <strong class="font-mono text-emerald">{{ $orderSuccess['orderNum'] }}</strong> has been recorded.
             </p>
 
-            <script>localStorage.removeItem('af_cart');</script>
+            <script>
+                localStorage.removeItem('af_cart');
+                localStorage.setItem('af_cart', '[]');
+                if (typeof cart !== 'undefined') { cart = []; }
+                if (typeof updateCartUI === 'function') { updateCartUI(); }
+            </script>
 
             <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px;">
                 <a href="{{ route('store.index') }}" class="btn-primary" style="padding: 12px 24px;">Return to Storefront</a>
@@ -45,7 +50,7 @@
 
     @else
         <div style="background: #ffffff; border-radius: 32px; padding: 36px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-lg);">
-            <h1 style="font-size: 24px; font-weight: 900; color: #111827; margin-bottom: 20px;">Delivery & Payment Details (Laravel Checkout)</h1>
+            <h1 style="font-size: 24px; font-weight: 900; color: #111827; margin-bottom: 20px;">Delivery & Payment Details</h1>
 
             <form method="POST" action="{{ route('checkout.placeOrder') }}" onsubmit="prepareCheckoutSubmit(event)">
                 @csrf

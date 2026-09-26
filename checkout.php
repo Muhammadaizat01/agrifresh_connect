@@ -30,11 +30,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $stmt->execute([$user['id'], $orderNum, $name, $user['role_name'] ?? 'Direct Consumer', $phone, $totalAmount, $paymentMethod, $address, $batchCode]);
     $orderId = $pdo->lastInsertId();
 
-    // Insert order items
+    // Insert order items & deduct inventory
     $itemStmt = $pdo->prepare("INSERT INTO order_items (order_id, product_name, quantity, unit, price, subtotal) VALUES (?, ?, ?, ?, ?, ?)");
+    $stockStmt = $pdo->prepare("UPDATE products SET quantity_available = GREATEST(0, quantity_available - ?) WHERE id = ?");
+    $itemSummaryParts = [];
     foreach ($items as $it) {
         $sub = $it['price'] * $it['qty'];
         $itemStmt->execute([$orderId, $it['name'], $it['qty'], $it['unit'], $it['price'], $sub]);
+        $itemSummaryParts[] = "{$it['name']} ({$it['qty']} {$it['unit']})";
+        if (!empty($it['id'])) {
+            $stockStmt->execute([floatval($it['qty']), intval($it['id'])]);
+        }
+    }
+
+    $itemSummary = !empty($itemSummaryParts) ? implode(', ', $itemSummaryParts) : 'Fresh Produce';
+
+    // Notify Farmers in notifications table
+    $farmersStmt = $pdo->query("SELECT user_id FROM farmers WHERE user_id IS NOT NULL");
+    $farmersList = $farmersStmt->fetchAll();
+    $notifStmt = $pdo->prepare("INSERT INTO notifications (id, type, notifiable_type, notifiable_id, data, created_at, updated_at) VALUES (?, 'App\\Notifications\\NewOrderReceived', 'App\\Models\\User', ?, ?, NOW(), NOW())");
+    foreach ($farmersList as $fRow) {
+        $notifData = json_encode([
+            'order_id' => $orderId,
+            'order_number' => $orderNum,
+            'buyer_name' => $name,
+            'buyer_role' => $user['role_name'] ?? 'Direct Consumer',
+            'phone' => $phone,
+            'shipping_address' => $address,
+            'total_amount' => $totalAmount,
+            'batch_code' => $batchCode,
+            'items' => $itemSummary,
+            'driver' => 'Famox Logistics Lunas Hub (Van KDH 4410)',
+            'message' => "New order $orderNum from $name for $itemSummary (RM " . number_format($totalAmount, 2) . ")",
+            'time' => date('d M Y, h:i A')
+        ]);
+        // Simple UUID v4 generator
+        $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+        $notifStmt->execute([$uuid, $fRow['user_id'], $notifData]);
     }
 
     // Log Activity in MySQL
@@ -93,6 +131,9 @@ include __DIR__ . '/includes/header.php';
             <script>
                 // Clear cart from local storage on successful order
                 localStorage.removeItem('af_cart');
+                localStorage.setItem('af_cart', '[]');
+                if (typeof cart !== 'undefined') { cart = []; }
+                if (typeof updateCartUI === 'function') { updateCartUI(); }
             </script>
 
             <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">

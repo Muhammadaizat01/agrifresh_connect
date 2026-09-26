@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $roleName = ($roleType === 'farmer') ? 'Farmer' : 'Buyer';
 
             $ins = $pdo->prepare("INSERT INTO users (role_id, name, email, password, phone, address, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)");
-            $ins->execute([$roleId, $name, $email, $password, $phone, $address]);
+            $ins->execute([$roleId, $name, $email, password_hash($password, PASSWORD_DEFAULT), $phone, $address]);
             $userId = $pdo->lastInsertId();
 
             if ($roleType === 'farmer') {

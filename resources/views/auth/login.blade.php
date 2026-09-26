@@ -20,7 +20,7 @@
         <!-- 1-Click Demo Logins -->
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 20px; padding: 16px; margin-bottom: 24px;">
             <div style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; margin-bottom: 8px; text-align: center;">
-                ⚡ 1-Click Demo Logins (For Lecturer Presentation)
+                ⚡ 1-Click Log In
             </div>
             <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
                 <form method="POST" action="{{ route('login.submit') }}" style="margin: 0;">
@@ -73,7 +73,6 @@
 </button>
     </div>
 </div>
-
             <div style="text-align: center; margin-top: 6px;">
                 <button type="submit" class="btn-primary" style="padding: 12px 36px; font-size: 13px; width: 100%; max-width: 260px; margin: 0 auto; display: inline-flex; justify-content: center;">
                     Sign In

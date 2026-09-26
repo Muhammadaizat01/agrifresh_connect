@@ -28,10 +28,27 @@ class FarmerController extends Controller
             $farmerProducts = Product::orderBy('id', 'desc')->take(6)->get();
         }
 
-        $recentOrders = Order::orderBy('id', 'desc')->take(5)->get();
+        $recentOrders = Order::with('items')->orderBy('id', 'desc')->take(10)->get();
         $categories = Category::all();
 
-        return view('farmer.dashboard', compact('farmer', 'farmerProducts', 'recentOrders', 'categories'));
+        // Notifications for farmer
+        $notifications = \Illuminate\Support\Facades\DB::table('notifications')
+            ->where('notifiable_id', $farmer->user_id ?? 2)
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
+        $unreadCount = \Illuminate\Support\Facades\DB::table('notifications')
+            ->where('notifiable_id', $farmer->user_id ?? 2)
+            ->whereNull('read_at')
+            ->count();
+
+        // If table notifications is empty but recent orders exist, default unread count to recent orders count
+        if ($unreadCount === 0 && $notifications->isEmpty()) {
+            $unreadCount = $recentOrders->count();
+        }
+
+        return view('farmer.dashboard', compact('farmer', 'farmerProducts', 'recentOrders', 'categories', 'notifications', 'unreadCount'));
     }
 
     public function storeProduce(Request $request)

@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        if ($user && ($password === $user['password'] || password_verify($password, $user['password']) || $password === 'password')) {
+        if ($user && ($password === $user['password'] || password_verify($password, $user['password']) || (!empty($demoRole) && $password === 'password'))) {
             $_SESSION['user'] = [
                 'id' => $user['id'],
                 'name' => $user['name'],
