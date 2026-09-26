@@ -98,6 +98,19 @@ $ordersStmt = $pdo->prepare("SELECT * FROM orders WHERE user_id=? OR buyer_name=
 $ordersStmt->execute([$userId, $userName]);
 $orders = $ordersStmt->fetchAll();
 
+foreach ($orders as &$order) {
+    $itemStmt = $pdo->prepare("
+        SELECT oi.*, p.batch_id, p.farmer_name, p.farmer_location, p.image_url, p.harvest_time 
+        FROM order_items oi 
+        LEFT JOIN products p ON (p.name = oi.product_name OR p.name_ms = oi.product_name) 
+        WHERE oi.order_id = ?
+        GROUP BY oi.id
+    ");
+    $itemStmt->execute([$order['id']]);
+    $order['items'] = $itemStmt->fetchAll();
+}
+unset($order);
+
 $totalSpent  = array_sum(array_column($orders, 'total_amount'));
 $activeCount = count(array_filter($orders, fn($o) => !str_contains(strtolower($o['status']), 'delivered')));
 
@@ -272,6 +285,49 @@ include __DIR__ . '/includes/header.php';
                             <?php if ($i > 1): ?><div class="stage-line <?= $lc ?>"></div><?php endif; ?>
                             <div class="stage-dot <?= $dc ?>"><?= ($dc === 'done') ? '✓' : $i ?></div>
                         <?php endfor; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($order['items'])): ?>
+                    <!-- Ordered Produce & Multi-Farmer QR Traceability Passports -->
+                    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e7eb;">
+                        <div style="font-size: 11px; font-weight: 800; color: #374151; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>🥗 Ordered Farm Produce (<?= count($order['items']) ?> items):</span>
+                            <span style="font-size: 10px; color: #059669; font-weight: 700;">🌱 Direct Farm Traceability</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <?php foreach ($order['items'] as $it): 
+                                $itBatch = $it['batch_id'] ?: ($order['batch_code'] ?? 'AF-LUN-2026-089');
+                                $itFarmer = $it['farmer_name'] ?: 'Kedah Local Smallholder';
+                                $itLocation = $it['farmer_location'] ?: 'Kedah, Malaysia';
+                            ?>
+                            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <?php if (!empty($it['image_url'])): ?>
+                                        <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;">
+                                    <?php else: ?>
+                                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 18px;">🥬</div>
+                                    <?php endif; ?>
+                                    <div>
+                                        <div style="font-size: 12px; font-weight: 800; color: #111827;">
+                                            <?= htmlspecialchars($it['product_name']) ?>
+                                            <span style="font-size: 11px; font-weight: 600; color: #4b5563;">&times; <?= floatval($it['quantity']) ?> <?= htmlspecialchars($it['unit']) ?></span>
+                                        </div>
+                                        <div style="font-size: 10px; color: #6b7280; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                                            <span>👨‍🌾 <strong><?= htmlspecialchars($itFarmer) ?></strong> (<?= htmlspecialchars($itLocation) ?>)</span>
+                                            <span style="font-family: monospace; color: #047857; background: #ecfdf5; padding: 1px 6px; border-radius: 4px;"><?= htmlspecialchars($itBatch) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 12px; font-weight: 800; color: #111827;">RM <?= number_format($it['subtotal'] ?? ($it['price'] * $it['quantity']), 2) ?></span>
+                                    <button type="button" onclick="openQRModal('<?= htmlspecialchars(addslashes($itBatch)) ?>')" class="btn-primary" style="padding: 5px 10px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 8px; background: #065f46;">
+                                        <span>📱 QR Passport</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                 <?php endif; ?>
 

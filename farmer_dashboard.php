@@ -207,11 +207,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && 
     if ($qty <= 0) $qty = 50;
 
     if ($resId > 0) {
-        $pStmt = $pdo->prepare("SELECT name, unit FROM products WHERE id = ?");
+        $pStmt = $pdo->prepare("SELECT name, name_ms, unit FROM products WHERE id = ?");
         $pStmt->execute([$resId]);
         $prodInfo = $pStmt->fetch();
         if ($prodInfo) {
-            $pdo->prepare("UPDATE products SET quantity_available = ? WHERE id = ?")->execute([$qty, $resId]);
+            $pdo->prepare("UPDATE products SET quantity_available = ?, status = 'In Stock' WHERE id = ? OR name = ? OR name_ms = ?")->execute([$qty, $resId, $prodInfo['name'], $prodInfo['name']]);
             $msg = "Success! Produce <strong>" . htmlspecialchars($prodInfo['name']) . "</strong> has been restocked to <strong>{$qty} " . htmlspecialchars($prodInfo['unit']) . "</strong> and is now <strong>🟢 In Stock in the Storefront</strong>.";
         }
     }

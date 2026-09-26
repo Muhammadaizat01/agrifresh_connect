@@ -313,7 +313,16 @@ class FarmerController extends Controller
             if ($qty <= 0) $qty = 50;
 
             $product->quantity_available = $qty;
+            $product->status = 'In Stock';
             $product->save();
+
+            // Synchronize all product entries matching this name (including spotlight rows)
+            Product::where('name', $product->name)
+                ->orWhere('name_ms', $product->name)
+                ->update([
+                    'quantity_available' => $qty,
+                    'status' => 'In Stock'
+                ]);
 
             return redirect()->route('farmer.dashboard')->with('success', "Success! Produce '{$product->name}' stock has been updated to {$qty} {$product->unit} and is now 🟢 In Stock in the Storefront!");
         } catch (\Throwable $e) {

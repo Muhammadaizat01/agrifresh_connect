@@ -34,8 +34,26 @@ class BuyerController extends Controller
                       ->orWhere('buyer_name', $userName);
             })
             ->orderByDesc('created_at')
-            ->get()
-            ->toArray();
+            ->get();
+
+        foreach ($orders as $order) {
+            $items = DB::table('order_items as oi')
+                ->leftJoin('products as p', function ($join) {
+                    $join->on('p.name', '=', 'oi.product_name')
+                         ->orOn('p.name_ms', '=', 'oi.product_name');
+                })
+                ->where('oi.order_id', $order->id)
+                ->select(
+                    'oi.*',
+                    'p.batch_id',
+                    'p.farmer_name',
+                    'p.farmer_location',
+                    'p.image_url',
+                    'p.harvest_time'
+                )
+                ->get();
+            $order->items = $items;
+        }
 
         $totalSpent  = collect($orders)->sum('total_amount');
         $activeCount = collect($orders)->filter(fn($o) => !str_contains(strtolower($o->status), 'delivered'))->count();
