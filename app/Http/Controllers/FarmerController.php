@@ -242,4 +242,66 @@ class FarmerController extends Controller
             return redirect()->route('farmer.dashboard')->withErrors(['msg' => 'Could not update profile: ' . $e->getMessage()]);
         }
     }
+
+    public function declineOrder(Request $request, int $id)
+    {
+        try {
+            $order = Order::with('items')->findOrFail($id);
+            $reason = trim($request->input('decline_reason', 'Produce is currently Out of Stock'));
+            $markSoldOut = $request->has('mark_sold_out');
+
+            $order->status = 'Declined (Out of Stock)';
+            $order->notes = $reason;
+            $order->save();
+
+            // Auto-update vegetable stock to 0 in store catalog if requested
+            if ($markSoldOut && $order->items) {
+                foreach ($order->items as $item) {
+                    Product::where('name', $item->product_name)
+                        ->orWhere('name_ms', $item->product_name)
+                        ->update(['quantity_available' => 0]);
+                }
+            }
+
+            // Notify buyer in notifications table if buyer account exists
+            if (!empty($order->user_id)) {
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+                        \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                            'id' => \Illuminate\Support\Str::uuid()->toString(),
+                            'type' => 'App\Notifications\OrderDeclined',
+                            'notifiable_type' => 'App\Models\User',
+                            'notifiable_id' => $order->user_id,
+                            'data' => json_encode([
+                                'order_id' => $order->id,
+                                'order_number' => $order->order_number,
+                                'status' => 'Declined (Out of Stock)',
+                                'reason' => $reason,
+                                'total_amount' => $order->total_amount,
+                                'message' => "We sincerely apologize! Your order {$order->order_number} could not be fulfilled as produce is Out of Stock. Reason: {$reason}. A full refund has been processed.",
+                                'time' => date('d M Y, h:i A')
+                            ]),
+                            'read_at' => null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore if notifications table is missing
+                }
+            }
+
+            // Save in session so buyer will see pop-up if currently in session
+            session()->flash('order_declined_alert', [
+                'order_number' => $order->order_number,
+                'buyer_name' => $order->buyer_name,
+                'reason' => $reason,
+                'total_amount' => $order->total_amount
+            ]);
+
+            return redirect()->route('farmer.dashboard')->with('success', "Order {$order->order_number} has been declined. Produce marked Out of Stock and buyer has been notified with apology and refund confirmation.");
+        } catch (\Throwable $e) {
+            return redirect()->route('farmer.dashboard')->withErrors(['msg' => 'Could not decline order: ' . $e->getMessage()]);
+        }
+    }
 }

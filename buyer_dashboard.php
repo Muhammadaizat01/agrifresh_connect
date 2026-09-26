@@ -217,36 +217,63 @@ include __DIR__ . '/includes/header.php';
         <?php else: ?>
             <div style="display: flex; flex-direction: column; gap: 14px;">
             <?php foreach ($orders as $order):
+                $isDeclined = str_contains(strtolower($order['status'] ?? ''), 'decline');
                 $stage = getOrderStage($order['status']);
                 $stageLabels = ['1. Order Placed', '2. Packed at Hub', '3. Out for Delivery', '4. Delivered ✅'];
                 $pillClass = 'pill-' . $stage;
             ?>
-            <div style="padding: 18px 20px; background: #f9fafb; border-radius: 18px; border: 1px solid #f3f4f6;">
+            <div style="padding: 18px 20px; background: #f9fafb; border-radius: 18px; border: 1.5px solid <?= $isDeclined ? '#fca5a5' : '#f3f4f6' ?>;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                     <div>
                         <div style="font-size: 14px; font-weight: 800; color: #111827;"><?= htmlspecialchars($order['order_number']) ?></div>
                         <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">📅 <?= date('d M Y, h:i A', strtotime($order['created_at'])) ?></div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="font-size: 16px; font-weight: 800; color: #1d4ed8;">RM <?= number_format($order['total_amount'], 2) ?></div>
-                        <span class="oc-pill <?= $pillClass ?>"><?= htmlspecialchars($order['status']) ?></span>
+                        <div style="font-size: 16px; font-weight: 800; color: <?= $isDeclined ? '#dc2626' : '#1d4ed8' ?>;">RM <?= number_format($order['total_amount'], 2) ?></div>
+                        <?php if ($isDeclined): ?>
+                            <span class="oc-pill" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5;">❌ <?= htmlspecialchars($order['status']) ?></span>
+                        <?php else: ?>
+                            <span class="oc-pill <?= $pillClass ?>"><?= htmlspecialchars($order['status']) ?></span>
+                        <?php endif; ?>
                     </div>
                 </div>
 
-                <div class="stage-labels">
-                    <?php foreach ($stageLabels as $i => $lbl): ?>
-                        <span style="<?= ($i + 1 === $stage) ? 'color:#d97706;font-weight:800;' : (($i + 1 < $stage) ? 'color:#059669;' : '') ?>"><?= $lbl ?></span>
-                    <?php endforeach; ?>
-                </div>
-                <div class="stage-bar">
-                    <?php for ($i = 1; $i <= 4; $i++):
-                        $dc = ($i < $stage) ? 'done' : (($i === $stage) ? 'active' : '');
-                        $lc = ($i > 1 && ($i - 1) < $stage) ? 'done' : '';
-                    ?>
-                        <?php if ($i > 1): ?><div class="stage-line <?= $lc ?>"></div><?php endif; ?>
-                        <div class="stage-dot <?= $dc ?>"><?= ($dc === 'done') ? '✓' : $i ?></div>
-                    <?php endfor; ?>
-                </div>
+                <?php if ($isDeclined): ?>
+                    <!-- Out of Stock Apology & Refund Box -->
+                    <div style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 14px; padding: 14px 16px; margin: 10px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <div style="font-weight: 800; color: #991b1b; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                                    <span>⚠️ Out of Stock Apology from Farmer</span>
+                                </div>
+                                <div style="font-size: 12px; color: #7f1d1d; margin-top: 4px; font-style: italic;">
+                                    "<?= htmlspecialchars($order['notes'] ?? 'Harvest Out of Stock - Dawn crop depleted due to high demand') ?>"
+                                </div>
+                                <div style="font-size: 11px; color: #065f46; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+                                    <span>💰 100% Full Refund Processed (RM <?= number_format($order['total_amount'] ?? 0, 2) ?>) under Famox Guarantee</span>
+                                </div>
+                            </div>
+                            <button type="button" onclick="showDeclinedOrderApology('<?= htmlspecialchars(addslashes($order['order_number'])) ?>', '<?= htmlspecialchars(addslashes($order['notes'] ?? 'Harvest Out of Stock')) ?>', 'RM <?= number_format($order['total_amount'] ?? 0, 2) ?>')" class="btn-dark" style="padding: 7px 14px; font-size: 11px; cursor: pointer;">
+                                View Apology Details
+                            </button>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="stage-labels">
+                        <?php foreach ($stageLabels as $i => $lbl): ?>
+                            <span style="<?= ($i + 1 === $stage) ? 'color:#d97706;font-weight:800;' : (($i + 1 < $stage) ? 'color:#059669;' : '') ?>"><?= $lbl ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="stage-bar">
+                        <?php for ($i = 1; $i <= 4; $i++):
+                            $dc = ($i < $stage) ? 'done' : (($i === $stage) ? 'active' : '');
+                            $lc = ($i > 1 && ($i - 1) < $stage) ? 'done' : '';
+                        ?>
+                            <?php if ($i > 1): ?><div class="stage-line <?= $lc ?>"></div><?php endif; ?>
+                            <div class="stage-dot <?= $dc ?>"><?= ($dc === 'done') ? '✓' : $i ?></div>
+                        <?php endfor; ?>
+                    </div>
+                <?php endif; ?>
 
                 <div style="font-size:11px;color:#6b7280;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
                     <span>📍 <?= htmlspecialchars($order['shipping_address']) ?></span>

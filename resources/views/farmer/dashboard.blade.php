@@ -427,6 +427,15 @@
                                 <button type="button" onclick="openQRModalByBatch('{{ $ro->batch_code }}')" class="btn-dark" style="padding: 8px 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;">
                                     <span>🖨️ Print Crate QR Sticker</span>
                                 </button>
+                                @if(!str_contains(strtolower($ro->status ?? ''), 'decline'))
+                                    <button type="button" onclick="openDeclineOrderModal('{{ $ro->id }}', '{{ $ro->order_number }}', '{{ addslashes($ro->buyer_name) }}')" style="background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 14px; font-size: 11px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Decline if produce is out of stock and send apology">
+                                        <span>❌ Decline (Out of Stock)</span>
+                                    </button>
+                                @else
+                                    <span style="background: #fee2e2; color: #991b1b; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px;">
+                                        Declined: {{ $ro->notes }}
+                                    </span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -695,12 +704,48 @@ function confirmDeleteProduce(id, name) {
     }
 }
 
+// Decline Modal Handlers
+function openDeclineOrderModal(orderId, orderNum, buyerName) {
+    const modal = document.getElementById('declineOrderModalBackdrop');
+    const form = document.getElementById('declineOrderForm');
+    const tag = document.getElementById('declineModalOrderTag');
+    if (modal && form) {
+        form.action = "{{ url('/farmer-dashboard/order') }}/" + orderId + "/decline";
+        if (tag) tag.innerText = 'Order: ' + orderNum + ' (' + buyerName + ')';
+        modal.style.display = 'flex';
+    }
+}
+
+function closeDeclineOrderModal() {
+    const modal = document.getElementById('declineOrderModalBackdrop');
+    if (modal) modal.style.display = 'none';
+}
+
+function handleDeclineReasonChange(sel) {
+    const customArea = document.getElementById('customDeclineReason');
+    if (customArea) {
+        if (sel.value === 'custom') {
+            customArea.style.display = 'block';
+            customArea.required = true;
+            customArea.name = 'decline_reason';
+            sel.name = 'predefined_reason';
+        } else {
+            customArea.style.display = 'none';
+            customArea.required = false;
+            customArea.name = 'custom_decline_reason';
+            sel.name = 'decline_reason';
+        }
+    }
+}
+
 // Close modals when clicking on backdrop
 window.addEventListener('click', function(e) {
     const profileModal = document.getElementById('profileModalBackdrop');
     const cropModal = document.getElementById('editCropModalBackdrop');
+    const declineModal = document.getElementById('declineOrderModalBackdrop');
     if (e.target === profileModal) profileModal.style.display = 'none';
     if (e.target === cropModal) cropModal.style.display = 'none';
+    if (e.target === declineModal) declineModal.style.display = 'none';
 });
 
 // Submit Feedback Handlers
@@ -728,4 +773,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Modal 3: Decline Order & Out of Stock Apology Modal -->
+<div id="declineOrderModalBackdrop" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; width: 100%; max-width: 520px; border-radius: 28px; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">❌</span>
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 800; color: #111827;">Decline Order & Out of Stock Notice</h3>
+                    <p style="font-size: 11px; color: #6b7280;" id="declineModalOrderTag">Order: ...</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDeclineOrderModal()" style="background: none; border: none; font-size: 24px; color: #9ca3af; cursor: pointer;">&times;</button>
+        </div>
+
+        <form method="POST" id="declineOrderForm" action="" style="display: flex; flex-direction: column; gap: 16px; font-size: 12px;">
+            @csrf
+
+            <div style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 16px; padding: 14px; color: #991b1b; line-height: 1.4;">
+                <strong>⚠️ Note to Buyer:</strong> Declining this order will instantly notify the buyer with an apology message and issue an automated refund guarantee.
+            </div>
+
+            <div>
+                <label style="font-weight: 700; display: block; margin-bottom: 6px;">Reason for Declining (Sent to Buyer)</label>
+                <select name="decline_reason" id="declineReasonSelect" onchange="handleDeclineReasonChange(this)" class="form-input" style="width: 100%; margin-bottom: 8px;">
+                    <option value="Harvest Out of Stock - Dawn crop depleted due to high demand">Harvest Out of Stock - Dawn crop depleted due to high demand</option>
+                    <option value="Quality Standard Notice - Harvest did not meet MyGAP Grade-A standard">Quality Standard Notice - Harvest did not meet MyGAP Grade-A standard</option>
+                    <option value="Weather Disruption - Heavy rain prevented morning plucking in Kedah">Weather Disruption - Heavy rain prevented morning plucking in Kedah</option>
+                    <option value="custom">Other / Custom Reason...</option>
+                </select>
+                <textarea name="custom_decline_reason" id="customDeclineReason" rows="2" placeholder="Write custom apology / explanation for the buyer..." class="form-input" style="width: 100%; display: none;"></textarea>
+            </div>
+
+            <div style="background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px solid #f3f4f6;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #111827;">
+                    <input type="checkbox" name="mark_sold_out" value="1" checked style="width: 16px; height: 16px; accent-color: #dc2626;">
+                    <span>Automatically mark this produce as 🔴 SOLD OUT (0 stock) in store catalog</span>
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button type="button" onclick="closeDeclineOrderModal()" class="btn-dark" style="padding: 10px 18px; font-size: 12px; cursor: pointer;">Cancel</button>
+                <button type="submit" style="background: #dc2626; color: #ffffff; border: none; border-radius: 12px; padding: 10px 22px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(220,38,38,0.3);">
+                    <span>Confirm Decline & Send Apology</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection

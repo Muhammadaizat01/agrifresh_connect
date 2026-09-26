@@ -224,11 +224,74 @@ $isAuth = isLoggedIn();
     </div>
 </div>
 
+<!-- Apology Pop-up Modal for Declined / Out of Stock Orders -->
+<div id="apologyModalBackdrop" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(5px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; width: 100%; max-width: 540px; border-radius: 28px; padding: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); text-align: center; position: relative; border: 1.5px solid #fed7aa;">
+        <div style="width: 72px; height: 72px; background: #fff7ed; border: 2px solid #fdba74; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 34px;">
+            🌾
+        </div>
+        
+        <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 9999px; border: 1px solid #fecaca; display: inline-block; margin-bottom: 8px;">
+            ⚠️ Fresh Produce Out of Stock Notice
+        </span>
+
+        <h3 style="font-size: 22px; font-weight: 900; color: #111827; margin-bottom: 8px;">We Sincerely Apologize!</h3>
+        
+        <p style="font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 18px;">
+            We regret to inform you that order <strong id="apologyOrderNumber" style="color: #111827; font-family: monospace;">#ORDER</strong> could not be fulfilled because the fresh harvest is currently <strong>Out of Stock</strong>.
+        </p>
+
+        <!-- Farmer Reason Card -->
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 14px 18px; text-align: left; margin-bottom: 18px;">
+            <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #92400e; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                <span>👨‍🌾 Farmer's Explanation:</span>
+            </div>
+            <div id="apologyReasonText" style="font-size: 13px; font-weight: 700; color: #78350f; font-style: italic;">
+                "Harvest Out of Stock - Dawn crop depleted due to high demand"
+            </div>
+        </div>
+
+        <!-- 100% Refund Guarantee Box -->
+        <div style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 14px 18px; text-align: left; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 12px;">
+            <span style="font-size: 24px; line-height: 1;">💰</span>
+            <div>
+                <div style="font-size: 13px; font-weight: 800; color: #065f46;">
+                    100% Full Refund Guarantee
+                </div>
+                <div style="font-size: 12px; color: #047857; margin-top: 2px;">
+                    Your payment of <strong id="apologyRefundAmount">RM 0.00</strong> has been processed for automated reversal under the Famox Fresh Quality Guarantee.
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button type="button" onclick="closeApologyModal()" class="btn-dark" style="padding: 11px 22px; font-size: 13px; font-weight: 700; cursor: pointer;">
+                Understood / Close
+            </button>
+            <a href="index.php#store" class="btn-primary" style="padding: 11px 24px; font-size: 13px; font-weight: 800;">
+                <span>🛒 Browse Other Fresh Harvests</span> &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+
 <div id="toastNotification" class="toast-popup">
     <span class="toast-icon">🌱</span>
     <span id="toastMessageText">Notification</span>
 </div>
 
 <script src="assets/js/app.js"></script>
+<?php if (!empty($_SESSION['order_declined_alert'])): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    showDeclinedOrderApology(
+        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['order_number'])) ?>",
+        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['reason'])) ?>",
+        "RM <?= number_format($_SESSION['order_declined_alert']['total_amount'], 2) ?>"
+    );
+});
+</script>
+<?php unset($_SESSION['order_declined_alert']); ?>
+<?php endif; ?>
 </body>
 </html>

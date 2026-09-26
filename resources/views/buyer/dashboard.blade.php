@@ -128,43 +128,70 @@
             @foreach ($orders as $order)
                 @php
                     $orderObj = (object)$order;
+                    $isDeclined = str_contains(strtolower($orderObj->status ?? ''), 'decline');
                     $stage = getOrderStage($orderObj->status ?? '');
                     $stageLabels = ['1. Order Placed', '2. Packed at Hub', '3. Out for Delivery', '4. Delivered ✅'];
                     $pillClass = 'pill-' . $stage;
                 @endphp
-                <div style="padding: 18px 20px; background: #f9fafb; border-radius: 18px; border: 1px solid #f3f4f6;">
+                <div style="padding: 18px 20px; background: #f9fafb; border-radius: 18px; border: 1.5px solid <?= $isDeclined ? '#fca5a5' : '#f3f4f6' ?>;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                         <div>
                             <div style="font-size: 14px; font-weight: 800; color: #111827;">{{ $orderObj->order_number ?? 'ORD-' . $orderObj->id }}</div>
                             <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">📅 {{ date('d M Y, h:i A', strtotime($orderObj->created_at ?? 'now')) }}</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size: 16px; font-weight: 800; color: #1d4ed8;">RM {{ number_format($orderObj->total_amount ?? 0, 2) }}</div>
-                            <span class="oc-pill {{ $pillClass }}">{{ $orderObj->status ?? 'Placed' }}</span>
+                            <div style="font-size: 16px; font-weight: 800; color: {{ $isDeclined ? '#dc2626' : '#1d4ed8' }};">RM {{ number_format($orderObj->total_amount ?? 0, 2) }}</div>
+                            @if($isDeclined)
+                                <span class="oc-pill" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5;">❌ {{ $orderObj->status ?? 'Declined (Out of Stock)' }}</span>
+                            @else
+                                <span class="oc-pill {{ $pillClass }}">{{ $orderObj->status ?? 'Placed' }}</span>
+                            @endif
                         </div>
                     </div>
 
-                    <div class="stage-labels">
-                        @foreach ($stageLabels as $i => $lbl)
-                            @if ($i + 1 === $stage)
-                                <span style="color:#d97706;font-weight:800;">{{ $lbl }}</span>
-                            @elseif ($i + 1 < $stage)
-                                <span style="color:#059669;">{{ $lbl }}</span>
-                            @else
-                                <span>{{ $lbl }}</span>
-                            @endif
-                        @endforeach
-                    </div>
-                    <div class="stage-bar">
-                        @for ($i = 1; $i <= 4; $i++)
-                            @php
-                                $dc = ($i < $stage) ? 'done' : (($i === $stage) ? 'active' : '');
-                                $lc = ($i > 1 && ($i - 1) < $stage) ? 'done' : '';
-                            @endphp
-                            @if ($i > 1)<div class="stage-line {{ $lc }}"></div>@endif
-                            <div class="stage-dot {{ $dc }}">{{ ($dc === 'done') ? '✓' : $i }}</div>
-                        @endfor
-                    </div>
+                    @if($isDeclined)
+                        <!-- Out of Stock Apology & Refund Box -->
+                        <div style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 14px; padding: 14px 16px; margin: 10px 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <div>
+                                    <div style="font-weight: 800; color: #991b1b; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                                        <span>⚠️ Out of Stock Apology from Farmer</span>
+                                    </div>
+                                    <div style="font-size: 12px; color: #7f1d1d; margin-top: 4px; font-style: italic;">
+                                        "{{ $orderObj->notes ?? 'Harvest Out of Stock - Dawn crop depleted due to high demand' }}"
+                                    </div>
+                                    <div style="font-size: 11px; color: #065f46; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+                                        <span>💰 100% Full Refund Processed (RM {{ number_format($orderObj->total_amount ?? 0, 2) }}) under Famox Guarantee</span>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="showDeclinedOrderApology('{{ $orderObj->order_number ?? '#' . $orderObj->id }}', '{{ addslashes($orderObj->notes ?? 'Harvest Out of Stock') }}', 'RM {{ number_format($orderObj->total_amount ?? 0, 2) }}')" class="btn-dark" style="padding: 7px 14px; font-size: 11px; cursor: pointer;">
+                                    View Apology Details
+                                </button>
+                            </div>
+                        </div>
+                    @else
+                        <div class="stage-labels">
+                            @foreach ($stageLabels as $i => $lbl)
+                                @if ($i + 1 === $stage)
+                                    <span style="color:#d97706;font-weight:800;">{{ $lbl }}</span>
+                                @elseif ($i + 1 < $stage)
+                                    <span style="color:#059669;">{{ $lbl }}</span>
+                                @else
+                                    <span>{{ $lbl }}</span>
+                                @endif
+                            @endforeach
+                        </div>
+                        <div class="stage-bar">
+                            @for ($i = 1; $i <= 4; $i++)
+                                @php
+                                    $dc = ($i < $stage) ? 'done' : (($i === $stage) ? 'active' : '');
+                                    $lc = ($i > 1 && ($i - 1) < $stage) ? 'done' : '';
+                                @endphp
+                                @if ($i > 1)<div class="stage-line {{ $lc }}"></div>@endif
+                                <div class="stage-dot {{ $dc }}">{{ ($dc === 'done') ? '✓' : $i }}</div>
+                            @endfor
+                        </div>
+                    @endif
 
                     <div style="font-size:11px;color:#6b7280;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">
                         <span>📍 {{ $orderObj->shipping_address ?? 'N/A' }}</span>

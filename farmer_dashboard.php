@@ -200,6 +200,62 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && 
     }
 }
 
+// Handle Decline Order POST
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'decline_order') {
+    $decOrderId = intval($_POST['order_id'] ?? 0);
+    $decReason = trim($_POST['decline_reason'] ?? 'Produce is currently Out of Stock');
+    $markSoldOut = isset($_POST['mark_sold_out']);
+
+    if ($decOrderId > 0) {
+        $updOrder = $pdo->prepare("UPDATE orders SET status = 'Declined (Out of Stock)', notes = ? WHERE id = ?");
+        $updOrder->execute([$decReason, $decOrderId]);
+
+        if ($markSoldOut) {
+            $itemsStmt = $pdo->prepare("SELECT product_name FROM order_items WHERE order_id = ?");
+            $itemsStmt->execute([$decOrderId]);
+            $oItems = $itemsStmt->fetchAll();
+            $soldOutStmt = $pdo->prepare("UPDATE products SET quantity_available = 0 WHERE name = ? OR name_ms = ?");
+            foreach ($oItems as $oi) {
+                $soldOutStmt->execute([$oi['product_name'], $oi['product_name']]);
+            }
+        }
+
+        // Notify Buyer
+        $ordUserStmt = $pdo->prepare("SELECT user_id, order_number, total_amount, buyer_name FROM orders WHERE id = ?");
+        $ordUserStmt->execute([$decOrderId]);
+        $ordInfo = $ordUserStmt->fetch();
+        if ($ordInfo && !empty($ordInfo['user_id'])) {
+            try {
+                $notifStmt = $pdo->prepare("INSERT INTO notifications (id, type, notifiable_type, notifiable_id, data, created_at, updated_at) VALUES (?, 'App\\Notifications\\OrderDeclined', 'App\\Models\\User', ?, ?, NOW(), NOW())");
+                $notifData = json_encode([
+                    'order_id' => $decOrderId,
+                    'order_number' => $ordInfo['order_number'],
+                    'status' => 'Declined (Out of Stock)',
+                    'reason' => $decReason,
+                    'total_amount' => $ordInfo['total_amount'],
+                    'message' => "We sincerely apologize! Your order {$ordInfo['order_number']} could not be fulfilled as produce is Out of Stock. Reason: {$decReason}. A full refund has been processed.",
+                    'time' => date('d M Y, h:i A')
+                ]);
+                $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                    mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+                    mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+                );
+                $notifStmt->execute([$uuid, $ordInfo['user_id'], $notifData]);
+            } catch (\Throwable $e) {}
+        }
+
+        $_SESSION['order_declined_alert'] = [
+            'order_number' => $ordInfo['order_number'] ?? "#$decOrderId",
+            'buyer_name' => $ordInfo['buyer_name'] ?? 'Buyer',
+            'reason' => $decReason,
+            'total_amount' => $ordInfo['total_amount'] ?? 0
+        ];
+
+        $msg = "Order <strong>" . htmlspecialchars($ordInfo['order_number'] ?? "#$decOrderId") . "</strong> declined. Produce marked Out of Stock and buyer has been notified with apology and refund confirmation.";
+    }
+}
+
 // Fetch Farmer's Active Products
 $prodStmt = $pdo->prepare("SELECT * FROM products WHERE farmer_id = ? ORDER BY id DESC");
 $prodStmt->execute([$farmerId]);
@@ -529,9 +585,15 @@ include __DIR__ . '/includes/header.php';
                                     <span style="font-family: monospace; font-weight: 800; font-size: 14px; background: #111827; color: #ffffff; padding: 4px 10px; border-radius: 8px;">
                                         <?= htmlspecialchars($ro['order_number']) ?>
                                     </span>
-                                    <span style="background: #ecfdf5; color: #065f46; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; border: 1px solid #a7f3d0;">
-                                        ✓ <?= htmlspecialchars($ro['status']) ?>
-                                    </span>
+                                    <?php if (str_contains(strtolower($ro['status'] ?? ''), 'decline')): ?>
+                                        <span style="background: #fee2e2; color: #dc2626; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; border: 1px solid #fca5a5;">
+                                            ❌ <?= htmlspecialchars($ro['status']) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="background: #ecfdf5; color: #065f46; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 9999px; border: 1px solid #a7f3d0;">
+                                            ✓ <?= htmlspecialchars($ro['status']) ?>
+                                        </span>
+                                    <?php endif; ?>
                                     <span style="font-size: 11px; color: #6b7280;">
                                         🗓️ <?= !empty($ro['created_at']) ? date('d M Y, h:i A', strtotime($ro['created_at'])) : 'Today' ?>
                                     </span>
@@ -650,6 +712,15 @@ include __DIR__ . '/includes/header.php';
                                     <button type="button" onclick="openQRModalByBatch('<?= htmlspecialchars($ro['batch_code'], ENT_QUOTES) ?>')" class="btn-dark" style="padding: 8px 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;">
                                         <span>🖨️ Print Crate QR Sticker</span>
                                     </button>
+                                    <?php if (!str_contains(strtolower($ro['status'] ?? ''), 'decline')): ?>
+                                        <button type="button" onclick="openDeclineOrderModal('<?= $ro['id'] ?>', '<?= htmlspecialchars(addslashes($ro['order_number'])) ?>', '<?= htmlspecialchars(addslashes($ro['buyer_name'])) ?>')" style="background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 14px; font-size: 11px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Decline if produce is out of stock and send apology">
+                                            <span>❌ Decline (Out of Stock)</span>
+                                        </button>
+                                    <?php else: ?>
+                                        <span style="background: #fee2e2; color: #991b1b; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px;">
+                                            Declined: <?= htmlspecialchars($ro['notes'] ?? 'Out of Stock') ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -913,12 +984,48 @@ function confirmDeleteProduce(id, name) {
     }
 }
 
+// Decline Modal Handlers
+function openDeclineOrderModal(orderId, orderNum, buyerName) {
+    const modal = document.getElementById('declineOrderModalBackdrop');
+    const orderIdInput = document.getElementById('declineOrderId');
+    const tag = document.getElementById('declineModalOrderTag');
+    if (modal && orderIdInput) {
+        orderIdInput.value = orderId;
+        if (tag) tag.innerText = 'Order: ' + orderNum + ' (' + buyerName + ')';
+        modal.style.display = 'flex';
+    }
+}
+
+function closeDeclineOrderModal() {
+    const modal = document.getElementById('declineOrderModalBackdrop');
+    if (modal) modal.style.display = 'none';
+}
+
+function handleDeclineReasonChange(sel) {
+    const customArea = document.getElementById('customDeclineReason');
+    if (customArea) {
+        if (sel.value === 'custom') {
+            customArea.style.display = 'block';
+            customArea.required = true;
+            customArea.name = 'decline_reason';
+            sel.name = 'predefined_reason';
+        } else {
+            customArea.style.display = 'none';
+            customArea.required = false;
+            customArea.name = 'custom_decline_reason';
+            sel.name = 'decline_reason';
+        }
+    }
+}
+
 // Close modals when clicking on backdrop
 window.addEventListener('click', function(e) {
     const profileModal = document.getElementById('profileModalBackdrop');
     const cropModal = document.getElementById('editCropModalBackdrop');
+    const declineModal = document.getElementById('declineOrderModalBackdrop');
     if (e.target === profileModal) profileModal.style.display = 'none';
     if (e.target === cropModal) cropModal.style.display = 'none';
+    if (e.target === declineModal) declineModal.style.display = 'none';
 });
 
 // Submit Feedback Handlers
@@ -946,5 +1053,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Modal 3: Decline Order & Out of Stock Apology Modal -->
+<div id="declineOrderModalBackdrop" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; width: 100%; max-width: 520px; border-radius: 28px; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">❌</span>
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 800; color: #111827;">Decline Order & Out of Stock Notice</h3>
+                    <p style="font-size: 11px; color: #6b7280;" id="declineModalOrderTag">Order: ...</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeDeclineOrderModal()" style="background: none; border: none; font-size: 24px; color: #9ca3af; cursor: pointer;">&times;</button>
+        </div>
+
+        <form method="POST" id="declineOrderForm" action="farmer_dashboard.php" style="display: flex; flex-direction: column; gap: 16px; font-size: 12px;">
+            <input type="hidden" name="action" value="decline_order">
+            <input type="hidden" name="order_id" id="declineOrderId" value="">
+
+            <div style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 16px; padding: 14px; color: #991b1b; line-height: 1.4;">
+                <strong>⚠️ Note to Buyer:</strong> Declining this order will instantly notify the buyer with an apology message and issue an automated refund guarantee.
+            </div>
+
+            <div>
+                <label style="font-weight: 700; display: block; margin-bottom: 6px;">Reason for Declining (Sent to Buyer)</label>
+                <select name="decline_reason" id="declineReasonSelect" onchange="handleDeclineReasonChange(this)" class="form-input" style="width: 100%; margin-bottom: 8px;">
+                    <option value="Harvest Out of Stock - Dawn crop depleted due to high demand">Harvest Out of Stock - Dawn crop depleted due to high demand</option>
+                    <option value="Quality Standard Notice - Harvest did not meet MyGAP Grade-A standard">Quality Standard Notice - Harvest did not meet MyGAP Grade-A standard</option>
+                    <option value="Weather Disruption - Heavy rain prevented morning plucking in Kedah">Weather Disruption - Heavy rain prevented morning plucking in Kedah</option>
+                    <option value="custom">Other / Custom Reason...</option>
+                </select>
+                <textarea name="custom_decline_reason" id="customDeclineReason" rows="2" placeholder="Write custom apology / explanation for the buyer..." class="form-input" style="width: 100%; display: none;"></textarea>
+            </div>
+
+            <div style="background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px solid #f3f4f6;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #111827;">
+                    <input type="checkbox" name="mark_sold_out" value="1" checked style="width: 16px; height: 16px; accent-color: #dc2626;">
+                    <span>Automatically mark this produce as 🔴 SOLD OUT (0 stock) in store catalog</span>
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button type="button" onclick="closeDeclineOrderModal()" class="btn-dark" style="padding: 10px 18px; font-size: 12px; cursor: pointer;">Cancel</button>
+                <button type="submit" style="background: #dc2626; color: #ffffff; border: none; border-radius: 12px; padding: 10px 22px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(220,38,38,0.3);">
+                    <span>Confirm Decline & Send Apology</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

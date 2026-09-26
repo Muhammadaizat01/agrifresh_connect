@@ -110,6 +110,11 @@ Route::post(
 )->name('farmer.destroyProduce');
 
 Route::post(
+    '/farmer-dashboard/order/{id}/decline',
+    [FarmerController::class, 'declineOrder']
+)->name('farmer.declineOrder');
+
+Route::post(
     '/farmer-dashboard/profile',
     [FarmerController::class, 'updateProfile']
 )->name('farmer.updateProfile');
@@ -122,6 +127,11 @@ Route::match(
         if ($request->isMethod('post')) {
 
             $action = $request->input('action');
+
+            if ($action === 'decline_order') {
+                $orderId = (int) $request->input('order_id');
+                return app(FarmerController::class)->declineOrder($request, $orderId);
+            }
 
             if ($action === 'update_profile') {
 

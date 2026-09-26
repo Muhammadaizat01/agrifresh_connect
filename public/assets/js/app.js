@@ -268,3 +268,33 @@ function togglePasswordVisibility(inputId, btn) {
         icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
     }
 }
+
+// Apology Pop-up Modal Handlers
+function showDeclinedOrderApology(orderNumber, reason, refundAmount) {
+    const modal = document.getElementById('apologyModalBackdrop');
+    if (!modal) return;
+    if (orderNumber) {
+        const ordEl = document.getElementById('apologyOrderNumber');
+        if (ordEl) ordEl.innerText = orderNumber;
+    }
+    if (reason) {
+        const reasonEl = document.getElementById('apologyReasonText');
+        if (reasonEl) reasonEl.innerText = '"' + reason + '"';
+    }
+    if (refundAmount) {
+        const refundEl = document.getElementById('apologyRefundAmount');
+        if (refundEl) refundEl.innerText = (refundAmount.toString().startsWith('RM') ? refundAmount : 'RM ' + parseFloat(refundAmount).toFixed(2));
+    }
+    modal.style.display = 'flex';
+}
+
+function closeApologyModal() {
+    const modal = document.getElementById('apologyModalBackdrop');
+    if (modal) modal.style.display = 'none';
+}
+
+window.addEventListener('click', function(e) {
+    const apologyModal = document.getElementById('apologyModalBackdrop');
+    if (e.target === apologyModal) apologyModal.style.display = 'none';
+});
+
