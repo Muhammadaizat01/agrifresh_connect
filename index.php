@@ -135,9 +135,9 @@ include __DIR__ . '/includes/header.php';
 
                 <?php $itemSoldOut = (float)($item['quantity_available'] ?? 1) <= 0; ?>
                 <div class="spotlight-img-wrap" style="position: relative;">
-                    <img src="<?= htmlspecialchars($item['image_path']) ?>" alt="<?= htmlspecialchars($name) ?>" style="<?= $itemSoldOut ? 'filter: grayscale(35%);' : '' ?>">
+                    <img src="<?= htmlspecialchars($item['image_path']) ?>" alt="<?= htmlspecialchars($name) ?>" style="<?= $itemSoldOut ? 'filter: grayscale(35%); cursor: pointer;' : '' ?>" <?= $itemSoldOut ? 'onclick="showProductSoldOutApology(\'' . htmlspecialchars(addslashes($name)) . '\', \'' . htmlspecialchars($item['batch_id']) . '\')"' : '' ?>>
                     <?php if ($itemSoldOut): ?>
-                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5;">🔴 SOLD OUT</div>
+                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5; cursor: pointer;" onclick="showProductSoldOutApology('<?= htmlspecialchars(addslashes($name)) ?>', '<?= htmlspecialchars($item['batch_id']) ?>')" title="Click to see out of stock notice">🔴 SOLD OUT</div>
                     <?php endif; ?>
                     <div class="batch-floating-tag">Batch: <?= htmlspecialchars($item['batch_id']) ?></div>
                 </div>
@@ -149,8 +149,8 @@ include __DIR__ . '/includes/header.php';
                     </button>
 
                     <?php if ($itemSoldOut): ?>
-                        <button type="button" disabled style="background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                            <span>Sold Out</span>
+                        <button type="button" onclick="showProductSoldOutApology('<?= htmlspecialchars(addslashes($name)) ?>', '<?= htmlspecialchars($item['batch_id']) ?>')" style="background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.15);" title="Click to see out of stock apology & next harvest info">
+                            <span>🔴 Sold Out</span>
                         </button>
                     <?php else: ?>
                         <button type="button" class="btn-primary" onclick="addToCart({
@@ -210,9 +210,9 @@ include __DIR__ . '/includes/header.php';
             ?>
             <div class="prod-card">
                 <div class="prod-img-wrap" style="position: relative;">
-                    <img src="<?= htmlspecialchars($p['image_path']) ?>" alt="<?= htmlspecialchars($pName) ?>" style="<?= $pSoldOut ? 'filter: grayscale(35%);' : '' ?>">
+                    <img src="<?= htmlspecialchars($p['image_path']) ?>" alt="<?= htmlspecialchars($pName) ?>" style="<?= $pSoldOut ? 'filter: grayscale(35%); cursor: pointer;' : '' ?>" <?= $pSoldOut ? 'onclick="showProductSoldOutApology(\'' . htmlspecialchars(addslashes($pName)) . '\', \'' . htmlspecialchars($p['batch_id']) . '\')"' : '' ?>>
                     <?php if ($pSoldOut): ?>
-                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5;">🔴 SOLD OUT</div>
+                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5; cursor: pointer;" onclick="showProductSoldOutApology('<?= htmlspecialchars(addslashes($pName)) ?>', '<?= htmlspecialchars($p['batch_id']) ?>')" title="Click to see out of stock notice">🔴 SOLD OUT</div>
                     <?php endif; ?>
                     <div class="location-badge" style="<?= $pSoldOut ? 'top: 40px;' : '' ?>">📍 <?= htmlspecialchars(explode(',', $p['farm_location'])[0]) ?></div>
                     <div class="grade-badge"><?= htmlspecialchars($p['grade']) ?></div>
@@ -244,8 +244,8 @@ include __DIR__ . '/includes/header.php';
                     </button>
 
                     <?php if ($pSoldOut): ?>
-                        <button type="button" disabled style="background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                            <span>Sold Out</span>
+                        <button type="button" onclick="showProductSoldOutApology('<?= htmlspecialchars(addslashes($pName)) ?>', '<?= htmlspecialchars($p['batch_id']) ?>')" style="background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.15);" title="Click to see out of stock apology & next harvest info">
+                            <span>🔴 Sold Out</span>
                         </button>
                     <?php else: ?>
                         <button type="button" class="btn-primary" onclick="addToCart({

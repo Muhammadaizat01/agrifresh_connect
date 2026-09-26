@@ -71,9 +71,9 @@
                         : asset($item->image_path);
                 @endphp
                 <div class="spotlight-img-wrap" style="position: relative;">
-                    <img src="{{ $imageUrl }}" alt="{{ $name }}" @if($itemSoldOut) style="filter: grayscale(35%);" @endif>
+                    <img src="{{ $imageUrl }}" alt="{{ $name }}" @if($itemSoldOut) style="filter: grayscale(35%); cursor: pointer;" onclick="showProductSoldOutApology('{{ addslashes($name) }}', '{{ $item->batch_id }}')" @endif>
                     @if($itemSoldOut)
-                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5;">🔴 {{ __('SOLD OUT') }}</div>
+                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5; cursor: pointer;" onclick="showProductSoldOutApology('{{ addslashes($name) }}', '{{ $item->batch_id }}')" title="{{ __('Click to see out of stock notice') }}">🔴 {{ __('SOLD OUT') }}</div>
                     @endif
                     <div class="batch-floating-tag">Batch: {{ $item->batch_id }}</div>
                 </div>
@@ -85,8 +85,8 @@
                     </button>
 
                     @if($itemSoldOut)
-                        <button type="button" disabled style="background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                            <span>{{ __('Sold Out') }}</span>
+                        <button type="button" onclick="showProductSoldOutApology('{{ addslashes($name) }}', '{{ $item->batch_id }}')" style="background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.15);" title="{{ __('Click to see out of stock apology & next harvest info') }}">
+                            <span>🔴 {{ __('Sold Out') }}</span>
                         </button>
                     @else
                         <button
@@ -150,9 +150,9 @@
             @endphp
             <div class="prod-card">
                 <div class="prod-img-wrap" style="position: relative;">
-                    <img src="{{ str_starts_with($p->image_path, 'http') ? $p->image_path : asset($p->image_path) }}" alt="{{ $pName }}" styles="{{ $pSoldOut ? 'filter: grayscale(35%);' : '' }}">
+                    <img src="{{ str_starts_with($p->image_path, 'http') ? $p->image_path : asset($p->image_path) }}" alt="{{ $pName }}" @if($pSoldOut) style="filter: grayscale(35%); cursor: pointer;" onclick="showProductSoldOutApology('{{ addslashes($pName) }}', '{{ $p->batch_id }}')" @endif>
                     @if($pSoldOut)
-                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5;">🔴 {{ __('SOLD OUT') }}</div>
+                        <div style="position: absolute; top: 12px; left: 12px; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(220,38,38,0.5); z-index: 5; cursor: pointer;" onclick="showProductSoldOutApology('{{ addslashes($pName) }}', '{{ $p->batch_id }}')" title="{{ __('Click to see out of stock notice') }}">🔴 {{ __('SOLD OUT') }}</div>
                     @endif
                     @if($pSoldOut)
                         <div class="location-badge" style="top: 40px;">📍 {{ explode(',', $p->farm_location)[0] }}</div>
@@ -188,8 +188,8 @@
                     </button>
 
                     @if($pSoldOut)
-                        <button type="button" disabled style="background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                            <span>{{ __('Sold Out') }}</span>
+                        <button type="button" onclick="showProductSoldOutApology('{{ addslashes($pName) }}', '{{ $p->batch_id }}')" style="background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.15);" title="{{ __('Click to see out of stock apology & next harvest info') }}">
+                            <span>🔴 {{ __('Sold Out') }}</span>
                         </button>
                     @else
                         <button type="button" class="btn-primary" data-product="{{ json_encode([

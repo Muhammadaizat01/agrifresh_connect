@@ -270,21 +270,49 @@ function togglePasswordVisibility(inputId, btn) {
 }
 
 // Apology Pop-up Modal Handlers
+function showProductSoldOutApology(productName, batchId, reason) {
+    const modal = document.getElementById('apologyModalBackdrop');
+    if (!modal) return;
+    
+    const descEl = document.getElementById('apologyModalDesc');
+    const reasonEl = document.getElementById('apologyReasonText');
+    const refundBox = document.getElementById('apologyRefundBox');
+    const nextHarvestBox = document.getElementById('apologyNextHarvestBox');
+
+    if (descEl) {
+        descEl.innerHTML = `We regret to inform you that fresh produce <strong style="color: #111827;">${productName || 'this harvest'}</strong> (Batch: <code style="font-weight: 800; color: #059669;">${batchId || 'N/A'}</code>) is currently <strong>Out of Stock</strong>. Today's harvest quota has been completely sold out.`;
+    }
+    if (reasonEl) {
+        reasonEl.innerText = '"' + (reason || 'Harvest Out of Stock - Dawn batch depleted due to high buyer demand. Fresh morning plucking scheduled for tomorrow at 6:00 AM.') + '"';
+    }
+    if (refundBox) refundBox.style.display = 'none';
+    if (nextHarvestBox) nextHarvestBox.style.display = 'flex';
+
+    modal.style.display = 'flex';
+}
+
 function showDeclinedOrderApology(orderNumber, reason, refundAmount) {
     const modal = document.getElementById('apologyModalBackdrop');
     if (!modal) return;
-    if (orderNumber) {
-        const ordEl = document.getElementById('apologyOrderNumber');
-        if (ordEl) ordEl.innerText = orderNumber;
+    
+    const descEl = document.getElementById('apologyModalDesc');
+    const reasonEl = document.getElementById('apologyReasonText');
+    const refundBox = document.getElementById('apologyRefundBox');
+    const nextHarvestBox = document.getElementById('apologyNextHarvestBox');
+    const refundEl = document.getElementById('apologyRefundAmount');
+
+    if (descEl) {
+        descEl.innerHTML = `We regret to inform you that order <strong style="color: #111827; font-family: monospace;">${orderNumber || '#ORDER'}</strong> could not be fulfilled because the fresh harvest is currently <strong>Out of Stock</strong>.`;
     }
-    if (reason) {
-        const reasonEl = document.getElementById('apologyReasonText');
-        if (reasonEl) reasonEl.innerText = '"' + reason + '"';
+    if (reasonEl) {
+        reasonEl.innerText = '"' + (reason || 'Harvest Out of Stock - Dawn crop depleted due to high demand') + '"';
     }
-    if (refundAmount) {
-        const refundEl = document.getElementById('apologyRefundAmount');
-        if (refundEl) refundEl.innerText = (refundAmount.toString().startsWith('RM') ? refundAmount : 'RM ' + parseFloat(refundAmount).toFixed(2));
+    if (refundEl) {
+        refundEl.innerText = (refundAmount ? (refundAmount.toString().startsWith('RM') ? refundAmount : 'RM ' + parseFloat(refundAmount).toFixed(2)) : 'RM 0.00');
     }
+    if (refundBox) refundBox.style.display = 'flex';
+    if (nextHarvestBox) nextHarvestBox.style.display = 'none';
+
     modal.style.display = 'flex';
 }
 
@@ -297,4 +325,5 @@ window.addEventListener('click', function(e) {
     const apologyModal = document.getElementById('apologyModalBackdrop');
     if (e.target === apologyModal) apologyModal.style.display = 'none';
 });
+
 

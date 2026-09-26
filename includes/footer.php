@@ -237,8 +237,8 @@ $isAuth = isLoggedIn();
 
         <h3 style="font-size: 22px; font-weight: 900; color: #111827; margin-bottom: 8px;">We Sincerely Apologize!</h3>
         
-        <p style="font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 18px;">
-            We regret to inform you that order <strong id="apologyOrderNumber" style="color: #111827; font-family: monospace;">#ORDER</strong> could not be fulfilled because the fresh harvest is currently <strong>Out of Stock</strong>.
+        <p id="apologyModalDesc" style="font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 18px;">
+            We regret to inform you that this fresh harvest produce is currently <strong>Out of Stock</strong>.
         </p>
 
         <!-- Farmer Reason Card -->
@@ -251,8 +251,8 @@ $isAuth = isLoggedIn();
             </div>
         </div>
 
-        <!-- 100% Refund Guarantee Box -->
-        <div style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 14px 18px; text-align: left; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 12px;">
+        <!-- 100% Refund Guarantee Box (for declined orders) -->
+        <div id="apologyRefundBox" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 16px; padding: 14px 18px; text-align: left; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 12px;">
             <span style="font-size: 24px; line-height: 1;">💰</span>
             <div>
                 <div style="font-size: 13px; font-weight: 800; color: #065f46;">
@@ -264,12 +264,25 @@ $isAuth = isLoggedIn();
             </div>
         </div>
 
+        <!-- Next Harvest Plucking Notice (for storefront browsing) -->
+        <div id="apologyNextHarvestBox" style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 16px; padding: 14px 18px; text-align: left; margin-bottom: 24px; display: none; align-items: flex-start; gap: 12px;">
+            <span style="font-size: 24px; line-height: 1;">🌱</span>
+            <div>
+                <div style="font-size: 13px; font-weight: 800; color: #166534;">
+                    Next Dawn Harvest Schedule
+                </div>
+                <div style="font-size: 12px; color: #15803d; margin-top: 2px;">
+                    Our Kedah farmers pluck fresh batches every morning at <strong>6:00 AM</strong>. You can check back tomorrow or browse other fresh vegetables currently in stock!
+                </div>
+            </div>
+        </div>
+
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
             <button type="button" onclick="closeApologyModal()" class="btn-dark" style="padding: 11px 22px; font-size: 13px; font-weight: 700; cursor: pointer;">
                 Understood / Close
             </button>
-            <a href="index.php#store" class="btn-primary" style="padding: 11px 24px; font-size: 13px; font-weight: 800;">
-                <span>🛒 Browse Other Fresh Harvests</span> &rarr;
+            <a href="index.php#store" onclick="closeApologyModal()" class="btn-primary" style="padding: 11px 24px; font-size: 13px; font-weight: 800;">
+                <span>🛒 Browse Available Harvests</span> &rarr;
             </a>
         </div>
     </div>
