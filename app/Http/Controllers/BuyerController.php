@@ -20,7 +20,7 @@ class BuyerController extends Controller
     {
         $user = $this->sessionUser();
         if (!$user) {
-            return Redirect::route('login');
+            return Redirect::route('login', ['redirect' => 'buyer.dashboard'])->withErrors(['msg' => '🔒 Access Locked: Please sign in to access your Buyer Dashboard.']);
         }
 
         $userId   = $user['id'];
@@ -67,7 +67,7 @@ class BuyerController extends Controller
     {
         $user = $this->sessionUser();
         if (!$user) {
-            return Redirect::route('login');
+            return Redirect::route('login', ['redirect' => 'buyer.setting'])->withErrors(['msg' => '🔒 Access Locked: Please sign in to access your Settings.']);
         }
 
         $userId  = $user['id'];

@@ -45,8 +45,13 @@ class AuthController extends Controller
                 'ip_address' => $request->ip()
             ]);
 
-            if ($redirect === 'checkout') {
-                return redirect()->route('checkout.index');
+            if (!empty($redirect)) {
+                if ($redirect === 'checkout' || $redirect === 'checkout.php') return redirect()->route('checkout.index');
+                if ($redirect === 'farmer.dashboard' || $redirect === 'farmer_dashboard.php') return redirect()->route('farmer.dashboard');
+                if ($redirect === 'admin.panel' || $redirect === 'admin_panel.php') return redirect()->route('admin.panel');
+                if ($redirect === 'buyer.dashboard' || $redirect === 'buyer_dashboard.php') return redirect()->route('buyer.dashboard');
+                if ($redirect === 'buyer.setting') return redirect()->route('buyer.settings');
+                if (filter_var($redirect, FILTER_VALIDATE_URL) || str_starts_with($redirect, '/')) return redirect($redirect);
             }
             if ($user->role_slug === 'farmer') return redirect()->route('farmer.dashboard');
             if ($user->role_slug === 'admin') return redirect()->route('admin.panel');

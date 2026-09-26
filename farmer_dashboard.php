@@ -7,24 +7,34 @@ $msg = '';
 $err = '';
 $newBatchId = '';
 
-// Detect logged-in farmer or fallback to demo farmer 1
+// Strictly require login
+if (!isLoggedIn()) {
+    header("Location: login.php?redirect=" . urlencode('farmer_dashboard.php'));
+    exit;
+}
+
+$user = currentUser();
+$targetUid = $user['id'];
+
+// Detect logged-in farmer
 $farmerId = 1;
-$farmerName = "Pak Cik Azman Bin Hashim";
-$farmName = "Ladang Hijau Makmur Lunas";
-$district = "Lunas, Kulim District, Kedah";
+$farmerName = $user['name'] ?? "Kedah Farmer";
+$farmName = "Kedah Agricultural Farm";
+$district = "Kulim District, Kedah";
 $certNumber = "MYGAP-KDH-2024-0891";
-$avatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300";
-$farmerPhone = "+60 19-482 9102";
+$avatar = $user['avatar'] ?? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300";
+$farmerPhone = $user['phone'] ?? "+60 19-482 9102";
 $farmerQuote = "With AgriFresh Connect and Famox, we get direct fair prices without middlemen.";
 
-$targetUid = isLoggedIn() ? $_SESSION['user']['id'] : null;
-if ($targetUid) {
-    $stmt = $pdo->prepare("SELECT f.*, u.name as user_name, u.phone as user_phone FROM farmers f JOIN users u ON f.user_id = u.id WHERE f.user_id = ? LIMIT 1");
-    $stmt->execute([$targetUid]);
-} else {
-    $stmt = $pdo->query("SELECT f.*, u.name as user_name, u.phone as user_phone FROM farmers f JOIN users u ON f.user_id = u.id WHERE f.id = 1 LIMIT 1");
-}
+$stmt = $pdo->prepare("SELECT f.*, u.name as user_name, u.phone as user_phone FROM farmers f JOIN users u ON f.user_id = u.id WHERE f.user_id = ? LIMIT 1");
+$stmt->execute([$targetUid]);
 $fData = $stmt->fetch();
+if (!$fData) {
+    // If not yet a farmer record, fetch farmer by user id or first
+    $stmt = $pdo->prepare("SELECT f.*, u.name as user_name, u.phone as user_phone FROM farmers f JOIN users u ON f.user_id = u.id WHERE f.id = 1 LIMIT 1");
+    $stmt->execute();
+    $fData = $stmt->fetch();
+}
 if ($fData) {
     $farmerId = $fData['id'];
     $farmerName = $fData['user_name'];

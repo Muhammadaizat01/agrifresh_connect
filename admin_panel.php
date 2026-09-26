@@ -3,6 +3,12 @@ require_once __DIR__ . '/config/db.php';
 $pageTitle = "Famox Enterprise Admin Panel | AgriFresh Connect";
 $activePage = 'admin';
 
+// Strictly require login
+if (!isLoggedIn()) {
+    header("Location: login.php?redirect=" . urlencode('admin_panel.php'));
+    exit;
+}
+
 $msg = '';
 $err = '';
 

@@ -12,6 +12,11 @@ class AdminController extends Controller
 {
     public function panel()
     {
+        $user = session('user');
+        if (!$user) {
+            return redirect()->route('login', ['redirect' => 'admin.panel'])->withErrors(['msg' => '🔒 Access Locked: Please sign in to access the Administration Portal.']);
+        }
+
         $farmers = Farmer::with('user')->get();
         $orders = Order::orderBy('id', 'desc')->get();
         $logs = ActivityLog::orderBy('id', 'desc')->take(10)->get();

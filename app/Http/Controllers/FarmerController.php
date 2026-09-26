@@ -15,10 +15,11 @@ class FarmerController extends Controller
     public function dashboard()
     {
         $user = session('user');
-        $farmer = null;
-        if ($user) {
-            $farmer = Farmer::with('user')->where('user_id', $user['id'])->first();
+        if (!$user) {
+            return redirect()->route('login', ['redirect' => 'farmer.dashboard'])->withErrors(['msg' => '🔒 Access Locked: Please sign in to your account to open the Farmer Portal.']);
         }
+
+        $farmer = Farmer::with('user')->where('user_id', $user['id'])->first();
         if (!$farmer) {
             $farmer = Farmer::with('user')->first();
         }
