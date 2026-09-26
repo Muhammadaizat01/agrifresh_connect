@@ -100,11 +100,12 @@ $orders = $ordersStmt->fetchAll();
 
 foreach ($orders as &$order) {
     $itemStmt = $pdo->prepare("
-        SELECT oi.*, p.batch_id, p.farmer_name, p.farmer_location, p.image_url, p.harvest_time 
+        SELECT oi.*, p.batch_id, p.farm_location, p.image_path, fm.farm_name, u.name as farmer_name 
         FROM order_items oi 
         LEFT JOIN products p ON (p.name = oi.product_name OR p.name_ms = oi.product_name) 
+        LEFT JOIN farmers fm ON p.farmer_id = fm.id 
+        LEFT JOIN users u ON fm.user_id = u.id 
         WHERE oi.order_id = ?
-        GROUP BY oi.id
     ");
     $itemStmt->execute([$order['id']]);
     $order['items'] = $itemStmt->fetchAll();
@@ -298,13 +299,13 @@ include __DIR__ . '/includes/header.php';
                         <div style="display: flex; flex-direction: column; gap: 8px;">
                             <?php foreach ($order['items'] as $it): 
                                 $itBatch = $it['batch_id'] ?: ($order['batch_code'] ?? 'AF-LUN-2026-089');
-                                $itFarmer = $it['farmer_name'] ?: 'Kedah Local Smallholder';
-                                $itLocation = $it['farmer_location'] ?: 'Kedah, Malaysia';
+                                $itFarmer = $it['farmer_name'] ?: ($it['farm_name'] ?? 'Kedah Local Smallholder');
+                                $itLocation = $it['farm_location'] ?: 'Kedah, Malaysia';
                             ?>
                             <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <?php if (!empty($it['image_url'])): ?>
-                                        <img src="<?= htmlspecialchars($it['image_url']) ?>" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;">
+                                    <?php if (!empty($it['image_path'])): ?>
+                                        <img src="<?= htmlspecialchars($it['image_path']) ?>" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;">
                                     <?php else: ?>
                                         <div style="width: 36px; height: 36px; border-radius: 8px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 18px;">🥬</div>
                                     <?php endif; ?>

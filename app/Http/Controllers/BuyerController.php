@@ -42,14 +42,16 @@ class BuyerController extends Controller
                     $join->on('p.name', '=', 'oi.product_name')
                          ->orOn('p.name_ms', '=', 'oi.product_name');
                 })
+                ->leftJoin('farmers as fm', 'p.farmer_id', '=', 'fm.id')
+                ->leftJoin('users as u', 'fm.user_id', '=', 'u.id')
                 ->where('oi.order_id', $order->id)
                 ->select(
                     'oi.*',
                     'p.batch_id',
-                    'p.farmer_name',
-                    'p.farmer_location',
-                    'p.image_url',
-                    'p.harvest_time'
+                    'p.farm_location',
+                    'p.image_path',
+                    'fm.farm_name',
+                    'u.name as farmer_name'
                 )
                 ->get();
             $order->items = $items;

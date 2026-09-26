@@ -205,13 +205,13 @@
                                     @php
                                         $itObj = (object)$it;
                                         $itBatch = $itObj->batch_id ?: ($orderObj->batch_code ?? 'AF-LUN-2026-089');
-                                        $itFarmer = $itObj->farmer_name ?: 'Kedah Local Smallholder';
-                                        $itLocation = $itObj->farmer_location ?: 'Kedah, Malaysia';
+                                        $itFarmer = $itObj->farmer_name ?: ($itObj->farm_name ?? 'Kedah Local Smallholder');
+                                        $itLocation = $itObj->farm_location ?: 'Kedah, Malaysia';
                                     @endphp
                                     <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
-                                            @if (!empty($itObj->image_url))
-                                                <img src="{{ asset($itObj->image_url) }}" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;">
+                                            @if (!empty($itObj->image_path))
+                                                <img src="{{ asset($itObj->image_path) }}" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;">
                                             @else
                                                 <div style="width: 36px; height: 36px; border-radius: 8px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 18px;">🥬</div>
                                             @endif
