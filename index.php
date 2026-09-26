@@ -347,10 +347,14 @@ include __DIR__ . '/includes/header.php';
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
-        <?php foreach ($farmers as $f): ?>
+        <?php foreach ($farmers as $f): 
+            $fAvatar = !empty($f['avatar']) 
+                ? (str_starts_with($f['avatar'], 'http') ? $f['avatar'] : '/' . ltrim($f['avatar'], '/')) 
+                : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300';
+        ?>
             <div style="background: #ffffff; border-radius: 24px; padding: 24px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="text-align: center;">
-                    <img src="<?= htmlspecialchars($f['avatar']) ?>" alt="<?= htmlspecialchars($f['farmer_name']) ?>" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid #10b981; margin: 0 auto 12px; display: block;">
+                    <img src="<?= htmlspecialchars($fAvatar) ?>" alt="<?= htmlspecialchars($f['farmer_name']) ?>" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid #10b981; margin: 0 auto 12px; display: block;">
                     <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 6px;">
                         <?= htmlspecialchars($f['famox_tier']) ?>
                     </span>

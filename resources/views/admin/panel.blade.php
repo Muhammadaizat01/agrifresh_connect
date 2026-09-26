@@ -131,11 +131,14 @@
                 @foreach($farmers as $fm)
                     @php
                         $isInactive = $fm->days_inactive > 60;
+                        $fmAvatar = !empty($fm->avatar) 
+                            ? (str_starts_with($fm->avatar, 'http') ? $fm->avatar : asset($fm->avatar)) 
+                            : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300';
                     @endphp
                     <tr style="border-bottom: 1px solid #f3f4f6;">
                         <td style="padding: 14px 8px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <img src="{{ $fm->avatar ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300' }}" alt="{{ $fm->user->name ?? 'Farmer' }}" style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
+                                <img src="{{ $fmAvatar }}" alt="{{ $fm->user->name ?? 'Farmer' }}" style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
                                 <div>
                                     <div style="font-weight: 800; color: #111827;">{{ $fm->user->name ?? 'Partner Farmer' }}</div>
                                     <div style="font-size: 11px; color: #059669; font-weight: 700;">{{ $fm->farm_name }}</div>

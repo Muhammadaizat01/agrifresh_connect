@@ -214,11 +214,14 @@ include __DIR__ . '/includes/header.php';
             <tbody>
                 <?php foreach ($farmers as $fm): 
                     $isInactive = $fm['days_inactive'] > 60;
+                    $fmAvatar = !empty($fm['avatar']) 
+                        ? (str_starts_with($fm['avatar'], 'http') ? $fm['avatar'] : '/' . ltrim($fm['avatar'], '/')) 
+                        : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300';
                 ?>
                     <tr style="border-bottom: 1px solid #f3f4f6;">
                         <td style="padding: 14px 8px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <img src="<?= htmlspecialchars($fm['avatar'] ?: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300') ?>" alt="<?= htmlspecialchars($fm['farmer_name']) ?>" style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
+                                <img src="<?= htmlspecialchars($fmAvatar) ?>" alt="<?= htmlspecialchars($fm['farmer_name']) ?>" style="width: 40px; height: 40px; border-radius: 12px; object-fit: cover;">
                                 <div>
                                     <div style="font-weight: 800; color: #111827;"><?= htmlspecialchars($fm['farmer_name']) ?></div>
                                     <div style="font-size: 11px; color: #059669; font-weight: 700;"><?= htmlspecialchars($fm['farm_name']) ?></div>
