@@ -31,19 +31,27 @@ class FarmerController extends Controller
         $recentOrders = Order::with('items')->orderBy('id', 'desc')->take(10)->get();
         $categories = Category::all();
 
-        // Notifications for farmer
-        $notifications = \Illuminate\Support\Facades\DB::table('notifications')
-            ->where('notifiable_id', $farmer->user_id ?? 2)
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get();
+        // Notifications for farmer (safely wrapped)
+        $notifications = collect();
+        $unreadCount = 0;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+                $notifications = \Illuminate\Support\Facades\DB::table('notifications')
+                    ->where('notifiable_id', $farmer->user_id ?? 2)
+                    ->orderBy('created_at', 'desc')
+                    ->take(10)
+                    ->get();
 
-        $unreadCount = \Illuminate\Support\Facades\DB::table('notifications')
-            ->where('notifiable_id', $farmer->user_id ?? 2)
-            ->whereNull('read_at')
-            ->count();
+                $unreadCount = \Illuminate\Support\Facades\DB::table('notifications')
+                    ->where('notifiable_id', $farmer->user_id ?? 2)
+                    ->whereNull('read_at')
+                    ->count();
+            }
+        } catch (\Throwable $e) {
+            // Safe fallback if notifications table is missing
+        }
 
-        // If table notifications is empty but recent orders exist, default unread count to recent orders count
+        // Default unread count to recent orders count if notifications empty
         if ($unreadCount === 0 && $notifications->isEmpty()) {
             $unreadCount = $recentOrders->count();
         }

@@ -1,4 +1,4 @@
-﻿-- AgriFresh Connect PostgreSQL Schema for Neon Console
+-- AgriFresh Connect PostgreSQL Schema for Neon Console
 -- Final Year Project: Muhammad Aizat Izzuddin Bin Azmi (B23101069) - AIMST University
 -- Compatible with PostgreSQL 15+ / Neon.tech
 
@@ -144,6 +144,19 @@ CREATE TABLE IF NOT EXISTS activity_logs (
   ip_address VARCHAR(100) DEFAULT '127.0.0.1',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 11. Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id VARCHAR(36) PRIMARY KEY,
+  type VARCHAR(255) NOT NULL,
+  notifiable_type VARCHAR(255) NOT NULL,
+  notifiable_id BIGINT NOT NULL,
+  data TEXT NOT NULL,
+  read_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS notif_notifiable_idx ON notifications (notifiable_type, notifiable_id);
 
 -- Default Initial Seed Data
 INSERT INTO roles (name, slug) VALUES 
