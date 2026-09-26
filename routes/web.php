@@ -180,6 +180,9 @@ Route::match(
 Route::get('/admin-panel', [AdminController::class, 'panel'])
     ->name('admin.panel');
 
+Route::post('/admin-panel/farmer/{id}/delete', [AdminController::class, 'deleteFarmer'])
+    ->name('admin.farmer.delete');
+
 Route::get('/admin_panel.php', function () {
     return redirect()->route('admin.panel');
 });
