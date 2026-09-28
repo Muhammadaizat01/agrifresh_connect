@@ -71,27 +71,43 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $redirect = $request->input('redirect', '');
-        $roleId = ($request->role_type === 'farmer') ? 2 : 3;
-        $roleName = ($request->role_type === 'farmer') ? 'Farmer' : 'Buyer';
-        $roleSlug = ($request->role_type === 'farmer') ? 'farmer' : 'buyer';
+        $name = trim($request->input('name', ''));
+        $email = trim($request->input('email', ''));
+        $password = $request->input('password', '');
+        $phone = trim($request->input('phone', ''));
+        $address = trim($request->input('address', ''));
+        $roleType = trim($request->input('role_type', 'buyer'));
+
+        if (empty($name) || empty($email) || empty($password)) {
+            return back()->with('error', 'Please fill in all required fields.');
+        }
+
+        $existing = DB::table('users')->where('email', $email)->first();
+        if ($existing) {
+            return back()->with('error', 'This email is already registered. Please sign in instead.');
+        }
+
+        $roleId = ($roleType === 'farmer') ? 2 : 3;
+        $roleName = ($roleType === 'farmer') ? 'Farmer' : 'Buyer';
+        $roleSlug = ($roleType === 'farmer') ? 'farmer' : 'buyer';
 
         $userId = DB::table('users')->insertGetId([
             'role_id' => $roleId,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password,
-            'phone' => $request->phone,
-            'address' => $request->address,
+            'name' => $name,
+            'email' => $email,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'phone' => $phone,
+            'address' => $address,
             'is_active' => 1,
             'created_at' => now()
         ]);
 
-        if ($request->role_type === 'farmer') {
+        if ($roleType === 'farmer') {
             DB::table('farmers')->insert([
                 'user_id' => $userId,
-                'farm_name' => $request->farm_name ?: ($request->name . ' Farm'),
+                'farm_name' => $request->farm_name ?: ($name . ' Farm'),
                 'kedah_district' => $request->district ?: 'Lunas / Kulim',
-                'farm_location_details' => $request->address,
+                'farm_location_details' => $address,
                 'farming_certification' => $request->cert ?: 'MyGAP Certified',
                 'cert_number' => 'MYGAP-KDH-' . date('Y') . '-' . rand(1000, 9999),
                 'experience_years' => 5,
@@ -100,22 +116,45 @@ class AuthController extends Controller
                 'quote' => 'Proud Kedah supplier for Famox Enterprise.',
                 'is_approved' => 1
             ]);
+        } else {
+            try {
+                DB::table('buyers')->insert([
+                    'user_id' => $userId,
+                    'company_name' => $name,
+                    'buyer_type' => 'Direct Consumer'
+                ]);
+            } catch (\Exception $e) {
+                // buyers table may be optional
+            }
         }
 
         session(['user' => [
             'id' => $userId,
-            'name' => $request->name,
-            'email' => $request->email,
+            'name' => $name,
+            'email' => $email,
             'role_id' => $roleId,
             'role_name' => $roleName,
             'role_slug' => $roleSlug,
-            'phone' => $request->phone,
-            'address' => $request->address
+            'phone' => $phone,
+            'address' => $address
         ]]);
 
-        if ($redirect === 'checkout') {
-            return redirect()->route('checkout.index');
+        ActivityLog::create([
+            'user_name' => $name,
+            'action' => 'New Account Registered',
+            'description' => "Registered as {$roleName}",
+            'ip_address' => $request->ip()
+        ]);
+
+        if (!empty($redirect)) {
+            if ($redirect === 'checkout' || $redirect === 'checkout.php') return redirect()->route('checkout.index');
+            if ($redirect === 'farmer.dashboard' || $redirect === 'farmer_dashboard.php') return redirect()->route('farmer.dashboard');
+            if ($redirect === 'buyer.dashboard' || $redirect === 'buyer_dashboard.php') return redirect()->route('buyer.dashboard');
+            if (filter_var($redirect, FILTER_VALIDATE_URL) || str_starts_with($redirect, '/')) return redirect($redirect);
         }
+
+        if ($roleSlug === 'farmer') return redirect()->route('farmer.dashboard');
+        if ($roleSlug === 'buyer') return redirect()->route('buyer.dashboard');
         return redirect()->route('store.index');
     }
 

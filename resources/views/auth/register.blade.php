@@ -1,37 +1,44 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="auth-wrap" style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 40px 1.25rem;">
-    <div class="auth-card" style="width: 100%; max-width: 520px; background: #ffffff; border-radius: 32px; padding: 36px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-xl);">
-        <div style="text-align: center; margin-bottom: 28px;">
-            <div style="width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 18px; overflow: hidden; border: 2px solid #10b981;">
-                <img src="{{ asset('assets/img/agrifresh_logo.png') }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
+<div class="auth-page-wrapper">
+    <div class="auth-card-glass" style="max-width: 580px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px; border: 2px solid #10b981; box-shadow: 0 4px 14px rgba(16,185,129,0.25);">
+                <img src="{{ asset('assets/img/agrifresh_logo.png') }}" alt="AgriFresh Logo" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
             <h1 style="font-size: 24px; font-weight: 900; color: #111827;">Create Your Account</h1>
             <p style="font-size: 13px; color: #6b7280; margin-top: 4px;">Join AgriFresh Connect to buy fresh produce or register as a Kedah smallholder supplier.</p>
         </div>
 
         @if(session('error'))
-            <div style="background: #fee2e2; color: #991b1b; padding: 12px 16px; border-radius: 14px; border: 1px solid #fca5a5; font-size: 12px; margin-bottom: 20px;">
+            <div style="background: #fee2e2; color: #991b1b; padding: 12px 16px; border-radius: 14px; border: 1px solid #fca5a5; font-size: 12px; margin-bottom: 20px; text-align: center;">
                 {{ session('error') }}
             </div>
         @endif
 
-        <form method="POST" action="{{ route('register.submit') }}" style="display: flex; flex-direction: column; gap: 16px; font-size: 13px;">
+        <form method="POST" action="{{ route('register.submit') }}" style="display: flex; flex-direction: column; gap: 14px; font-size: 12px;">
             @csrf
             <input type="hidden" name="redirect" value="{{ $redirect ?? '' }}">
 
             <!-- Role Selector Tabs -->
             <div>
-                <label style="font-weight: 700; display: block; margin-bottom: 8px;">I want to register as:</label>
+                <label style="font-weight: 700; display: block; margin-bottom: 6px;">Select Your Account Role</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <label style="border: 2px solid #10b981; background: #ecfdf5; border-radius: 14px; padding: 12px; text-align: center; cursor: pointer; display: block;">
-                        <input type="radio" name="role_type" value="buyer" checked onchange="toggleFarmerFields(false)" style="margin-right: 6px;">
-                        <strong>Buyer / Consumer</strong>
+                    <label id="buyerRadioLabel" style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 2px solid #10b981; background: #ecfdf5; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;">
+                        <input type="radio" name="role_type" value="buyer" checked onchange="toggleFarmerFields(false)">
+                        <div>
+                            <strong style="color: #065f46; display: block;">🛒 Buyer / Consumer</strong>
+                            <div style="font-size: 10px; color: #6b7280;">Purchase Fresh Produce</div>
+                        </div>
                     </label>
-                    <label style="border: 2px solid #d1d5db; background: #f9fafb; border-radius: 14px; padding: 12px; text-align: center; cursor: pointer; display: block;" id="farmerRadioLabel">
-                        <input type="radio" name="role_type" value="farmer" onchange="toggleFarmerFields(true)" style="margin-right: 6px;">
-                        <strong>Kedah Smallholder</strong>
+
+                    <label id="farmerRadioLabel" style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 2px solid #d1d5db; background: #f9fafb; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;">
+                        <input type="radio" name="role_type" value="farmer" onchange="toggleFarmerFields(true)">
+                        <div>
+                            <strong style="color: #92400e; display: block;">👨‍🌾 Kedah Smallholder</strong>
+                            <div style="font-size: 10px; color: #6b7280;">Sell Crops & Print QR</div>
+                        </div>
                     </label>
                 </div>
             </div>
@@ -41,17 +48,20 @@
                 <input type="text" name="name" required placeholder="e.g. Muhammad Aizat / Pak Cik Azman" class="form-input" style="width: 100%;">
             </div>
 
-            <div>
-                <label style="font-weight: 700; display: block; margin-bottom: 4px;">Email Address</label>
-                <input type="email" name="email" required placeholder="name@example.com" class="form-input" style="width: 100%;">
-            </div>
-
-            div>
-                <label style="font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
-                <input type="password" name="password" required placeholder="Create a secure password" class="form-input" style="width: 100%;">
-                <button type="button" onclick="togglePasswordVisibility('loginPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280; display: flex; align-items: center;">
-                <svg class="icon-sm password-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <label style="font-weight: 700; display: block; margin-bottom: 4px;">Email Address</label>
+                    <input type="email" name="email" required placeholder="name@example.com" class="form-input" style="width: 100%;">
+                </div>
+                <div>
+                    <label style="font-weight: 700; display: block; margin-bottom: 4px;">Password</label>
+                    <div style="position: relative;">
+                        <input type="password" id="registerPassword" name="password" required placeholder="Create password" class="form-input" style="width: 100%; padding-right: 36px;">
+                        <button type="button" onclick="togglePasswordVisibility('registerPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280; display: flex; align-items: center;">
+                            <svg class="icon-sm password-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -77,27 +87,33 @@
             </div>
 
             <!-- Farmer-Specific Additional Fields -->
-            <div id="farmerFields" style="display: none; border-top: 1px dashed #d1d5db; padding-top: 16px;">
-                <div style="margin-bottom: 12px;">
-                    <label style="font-weight: 700; display: block; margin-bottom: 4px;">Farm Name / Ladang</label>
-                    <input type="text" name="farm_name" placeholder="e.g. Ladang Hijau Makmur Lunas" class="form-input" style="width: 100%;">
-                </div>
-                <div>
-                    <label style="font-weight: 700; display: block; margin-bottom: 4px;">Farming Certification</label>
-                    <select name="cert" class="form-input" style="width: 100%;">
-                        <option value="MyGAP Certified">MyGAP Certified</option>
-                        <option value="Organic Certified">Organic Certified</option>
-                        <option value="In Conversion to MyGAP">In Conversion to MyGAP</option>
-                    </select>
+            <div id="farmerFields" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 14px;">
+                <div style="font-weight: 800; color: #92400e; margin-bottom: 8px;">👨‍🌾 Farm Details (Famox Supplier Network)</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-weight: 700; display: block; margin-bottom: 4px;">Farm Name / Ladang</label>
+                        <input type="text" name="farm_name" placeholder="e.g. Ladang Hijau Makmur" class="form-input" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; display: block; margin-bottom: 4px;">Farming Certification</label>
+                        <select name="cert" class="form-input" style="width: 100%;">
+                            <option value="MyGAP Certified">MyGAP Certified</option>
+                            <option value="Organic Certified">Organic Certified</option>
+                            <option value="In Conversion to MyGAP">In Conversion to MyGAP</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <button type="submit" class="btn-primary" style="padding: 14px; font-size: 14px; margin-top: 8px; justify-content: center; width: 100%;">
-                <span>Complete Registration</span> &rarr;
-            </button>
+            <!-- Submit Button -->
+            <div style="text-align: center; margin-top: 6px;">
+                <button type="submit" class="btn-primary" style="padding: 13px 40px; font-size: 14px; width: 100%; max-width: 280px; margin: 0 auto; display: inline-flex; justify-content: center; align-items: center; gap: 8px;">
+                    <span>Complete Registration</span> &rarr;
+                </button>
+            </div>
         </form>
 
-        <div style="text-align: center; margin-top: 24px; font-size: 13px; color: #6b7280;">
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280;">
             Already have an account? 
             <a href="{{ route('login') }}" style="color: #059669; font-weight: 700; text-decoration: underline;">Sign In Here</a>
         </div>
@@ -108,14 +124,19 @@
 function toggleFarmerFields(isFarmer) {
     const fFields = document.getElementById('farmerFields');
     const fLabel = document.getElementById('farmerRadioLabel');
+    const bLabel = document.getElementById('buyerRadioLabel');
     if (isFarmer) {
         fFields.style.display = 'block';
         fLabel.style.borderColor = '#10b981';
         fLabel.style.background = '#ecfdf5';
+        bLabel.style.borderColor = '#d1d5db';
+        bLabel.style.background = '#f9fafb';
     } else {
         fFields.style.display = 'none';
         fLabel.style.borderColor = '#d1d5db';
         fLabel.style.background = '#f9fafb';
+        bLabel.style.borderColor = '#10b981';
+        bLabel.style.background = '#ecfdf5';
     }
 }
 </script>
