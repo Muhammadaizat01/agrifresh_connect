@@ -218,7 +218,7 @@
         <p class="sec-desc" style="font-size: 14px; margin-top: 6px;">{{ __('Why buying directly from Famox smallholders is better for everyone.') }}</p>
     </div>
 
-    <div class="value-cards-grid">
+    <div id="traceability" class="value-cards-grid">
         <div class="val-card">
             <div class="val-icon" style="background:#ecfdf5; color:#059669;">🔍</div>
             <h3>{{ __('100% QR Traceability') }}</h3>

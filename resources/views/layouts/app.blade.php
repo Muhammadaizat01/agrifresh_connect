@@ -64,7 +64,7 @@
     <header class="glass-header">
     <div class="container-custom header-inner">
 
-        <a href="index.php" class="brand-logo-wrap">
+        <a href="{{ route('store.index') }}" class="brand-logo-wrap">
             <div class="brand-logo-img">
                 <img src="{{ asset('assets/img/agrifresh_logo.png') }}" alt="AgriFresh Logo" style="width: 38px; height: 38px; object-fit: contain;">
             </div>
@@ -75,12 +75,12 @@
         </a>
 
         <nav class="nav-links">
-            <a href="index.php" class="nav-link <?= ($activePage ?? '') === 'store' ? 'active' : '' ?>"><?= $txt['store'] ?? 'Store' ?></a>
-            <a href="index.php#latest" class="nav-link"><?= $txt['theLatest'] ?? 'The latest' ?></a>
-            <a href="index.php#farmers" class="nav-link"><?= $txt['farmers'] ?? 'Kedah Farmers' ?></a>
-            <a href="index.php#traceability" class="nav-link"><?= $txt['qrTraceability'] ?? 'QR Traceability' ?></a>
-            <a href="index.php#impact" class="nav-link"><?= $txt['fairTradeImpact'] ?? 'Fair Trade Impact' ?></a>
-            <a href="index.php#famox" class="nav-link"><?= $txt['famoxHub'] ?? 'Famox Hub Lunas' ?></a>
+            <a href="{{ route('store.index') }}" class="nav-link {{ ($activePage ?? '') === 'store' ? 'active' : '' }}">{{ __('Store') }}</a>
+            <a href="{{ route('store.index') }}#latest" class="nav-link">{{ __('The latest') }}</a>
+            <a href="{{ route('store.index') }}#farmers" class="nav-link">{{ __('Kedah Farmers') }}</a>
+            <a href="{{ route('store.index') }}#traceability" class="nav-link">{{ __('QR Traceability') }}</a>
+            <a href="{{ route('store.index') }}#impact" class="nav-link">{{ __('Fair Trade Impact') }}</a>
+            <a href="{{ route('store.index') }}#famox" class="nav-link">{{ __('Famox Hub Lunas') }}</a>
         </nav>
 
         <div class="header-actions">
