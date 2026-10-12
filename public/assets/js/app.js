@@ -291,7 +291,7 @@ function showProductSoldOutApology(productName, batchId, reason) {
     modal.style.display = 'flex';
 }
 
-function showDeclinedOrderApology(orderNumber, reason, refundAmount) {
+function showDeclinedOrderApology(orderNumber, reason, refundAmount, isPartial, declinedItemNames, remainingItemNames) {
     const modal = document.getElementById('apologyModalBackdrop');
     if (!modal) return;
     
@@ -300,10 +300,49 @@ function showDeclinedOrderApology(orderNumber, reason, refundAmount) {
     const refundBox = document.getElementById('apologyRefundBox');
     const nextHarvestBox = document.getElementById('apologyNextHarvestBox');
     const refundEl = document.getElementById('apologyRefundAmount');
+    const titleEl = modal.querySelector('h3');
+    const badgeEl = modal.querySelector('span[style*="font-size: 11px"]');
 
-    if (descEl) {
-        descEl.innerHTML = `We regret to inform you that order <strong style="color: #111827; font-family: monospace;">${orderNumber || '#ORDER'}</strong> could not be fulfilled because the fresh harvest is currently <strong>Out of Stock</strong>.`;
+    if (isPartial) {
+        if (titleEl) titleEl.innerText = "Partial Fulfillment Notice";
+        if (badgeEl) {
+            badgeEl.innerText = "⚠️ Item Out of Stock & Refund Issued";
+            badgeEl.style.background = "#fef3c7";
+            badgeEl.style.color = "#b45309";
+            badgeEl.style.borderColor = "#fde68a";
+        }
+        if (descEl) {
+            descEl.innerHTML = `For order <strong style="color: #111827; font-family: monospace;">${orderNumber || '#ORDER'}</strong>: produce item <strong>${declinedItemNames || 'the requested crop'}</strong> is currently out of stock.<br><br><span style="color: #065f46; font-weight: 700; background: #ecfdf5; padding: 6px 12px; border-radius: 8px; display: inline-block;">🚚 Rest of Order Delivering: Your remaining produce continues on track for delivery to your doorstep!</span>`;
+        }
+        if (refundBox) {
+            const refundTitle = refundBox.querySelector('div > div:first-child');
+            if (refundTitle) refundTitle.innerText = "Partial Refund Processed";
+            const refundSubtitle = refundBox.querySelector('div > div:last-child');
+            if (refundSubtitle) {
+                refundSubtitle.innerHTML = `Your partial payment of <strong id="apologyRefundAmount">${refundAmount || 'RM 0.00'}</strong> for the out-of-stock item has been reversed under the Famox Guarantee.`;
+            }
+        }
+    } else {
+        if (titleEl) titleEl.innerText = "We Sincerely Apologize!";
+        if (badgeEl) {
+            badgeEl.innerText = "⚠️ Fresh Produce Out of Stock Notice";
+            badgeEl.style.background = "#fee2e2";
+            badgeEl.style.color = "#dc2626";
+            badgeEl.style.borderColor = "#fecaca";
+        }
+        if (descEl) {
+            descEl.innerHTML = `We regret to inform you that order <strong style="color: #111827; font-family: monospace;">${orderNumber || '#ORDER'}</strong> could not be fulfilled because the fresh harvest is currently <strong>Out of Stock</strong>.`;
+        }
+        if (refundBox) {
+            const refundTitle = refundBox.querySelector('div > div:first-child');
+            if (refundTitle) refundTitle.innerText = "100% Full Refund Guarantee";
+            const refundSubtitle = refundBox.querySelector('div > div:last-child');
+            if (refundSubtitle) {
+                refundSubtitle.innerHTML = `Your payment of <strong id="apologyRefundAmount">${refundAmount || 'RM 0.00'}</strong> has been processed for automated reversal under the Famox Fresh Quality Guarantee.`;
+            }
+        }
     }
+
     if (reasonEl) {
         reasonEl.innerText = '"' + (reason || 'Harvest Out of Stock - Dawn crop depleted due to high demand') + '"';
     }

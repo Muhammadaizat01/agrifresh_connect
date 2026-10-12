@@ -29,13 +29,15 @@
     $userAvatar = $profile->avatar ?? $user['avatar'] ?? '';
     $displayAvatar = $userAvatar ? asset($userAvatar) : 'https://ui-avatars.com/api/?name=' . urlencode($userName) . '&background=1d4ed8&color=fff&size=150';
 
-    function getOrderStage(string $status): int {
-        $status = strtolower($status);
-        if (str_contains($status, 'confirmed') || str_contains($status, 'placed') || str_contains($status, 'tagged')) return 1;
-        if (str_contains($status, 'packed') || str_contains($status, 'hub') || str_contains($status, 'processing')) return 2;
-        if (str_contains($status, 'transit') || str_contains($status, 'delivery') || str_contains($status, 'out')) return 3;
-        if (str_contains($status, 'delivered') || str_contains($status, 'qr scanned')) return 4;
-        return 1;
+    if (!function_exists('getOrderStage')) {
+        function getOrderStage(string $status): int {
+            $status = strtolower($status);
+            if (str_contains($status, 'delivered') || str_contains($status, 'qr scanned')) return 4;
+            if (str_contains($status, 'transit') || str_contains($status, 'delivery') || str_contains($status, 'out')) return 3;
+            if (str_contains($status, 'packed') || str_contains($status, 'hub') || str_contains($status, 'processing') || str_contains($status, 'partial')) return 2;
+            if (str_contains($status, 'confirmed') || str_contains($status, 'placed') || str_contains($status, 'tagged')) return 1;
+            return 2;
+        }
     }
 @endphp
 
@@ -128,34 +130,37 @@
             @foreach ($orders as $order)
                 @php
                     $orderObj = (object)$order;
-                    $isDeclined = str_contains(strtolower($orderObj->status ?? ''), 'decline');
+                    $isFullyDeclined = (strtolower($orderObj->status ?? '') === 'declined (out of stock)' || strtolower($orderObj->status ?? '') === 'declined');
+                    $isPartial = (str_contains(strtolower($orderObj->status ?? ''), 'partial') || str_contains(strtolower($orderObj->notes ?? ''), 'partial out of stock'));
                     $stage = getOrderStage($orderObj->status ?? '');
                     $stageLabels = ['1. Order Placed', '2. Packed at Hub', '3. Out for Delivery', '4. Delivered ✅'];
                     $pillClass = 'pill-' . $stage;
                 @endphp
-                <div style="padding: 18px 20px; background: #f9fafb; border-radius: 18px; border: 1.5px solid <?= $isDeclined ? '#fca5a5' : '#f3f4f6' ?>;">
+                <div style="padding: 18px 20px; background: #f9fafb; border-radius: 18px; border: 1.5px solid {{ $isFullyDeclined ? '#fca5a5' : ($isPartial ? '#fde68a' : '#f3f4f6') }};">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                         <div>
                             <div style="font-size: 14px; font-weight: 800; color: #111827;">{{ $orderObj->order_number ?? 'ORD-' . $orderObj->id }}</div>
                             <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">📅 {{ date('d M Y, h:i A', strtotime($orderObj->created_at ?? 'now')) }}</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size: 16px; font-weight: 800; color: {{ $isDeclined ? '#dc2626' : '#1d4ed8' }};">RM {{ number_format($orderObj->total_amount ?? 0, 2) }}</div>
-                            @if($isDeclined)
+                            <div style="font-size: 16px; font-weight: 800; color: {{ $isFullyDeclined ? '#dc2626' : ($isPartial ? '#d97706' : '#1d4ed8') }};">RM {{ number_format($orderObj->total_amount ?? 0, 2) }}</div>
+                            @if($isFullyDeclined)
                                 <span class="oc-pill" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5;">❌ {{ $orderObj->status ?? 'Declined (Out of Stock)' }}</span>
+                            @elseif($isPartial)
+                                <span class="oc-pill" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⚠️ {{ $orderObj->status ?? 'Partially Fulfilled' }}</span>
                             @else
                                 <span class="oc-pill {{ $pillClass }}">{{ $orderObj->status ?? 'Placed' }}</span>
                             @endif
                         </div>
                     </div>
 
-                    @if($isDeclined)
-                        <!-- Out of Stock Apology & Refund Box -->
+                    @if($isFullyDeclined)
+                        <!-- Out of Stock Apology & Full Refund Box -->
                         <div style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 14px; padding: 14px 16px; margin: 10px 0;">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                 <div>
                                     <div style="font-weight: 800; color: #991b1b; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                                        <span>⚠️ Out of Stock Apology from Farmer</span>
+                                        <span>⚠️ Order Cancelled - Out of Stock Apology from Farmer</span>
                                     </div>
                                     <div style="font-size: 12px; color: #7f1d1d; margin-top: 4px; font-style: italic;">
                                         "{{ $orderObj->notes ?? 'Harvest Out of Stock - Dawn crop depleted due to high demand' }}"
@@ -164,12 +169,34 @@
                                         <span>💰 100% Full Refund Processed (RM {{ number_format($orderObj->total_amount ?? 0, 2) }}) under Famox Guarantee</span>
                                     </div>
                                 </div>
-                                <button type="button" onclick="showDeclinedOrderApology('{{ $orderObj->order_number ?? '#' . $orderObj->id }}', '{{ addslashes($orderObj->notes ?? 'Harvest Out of Stock') }}', 'RM {{ number_format($orderObj->total_amount ?? 0, 2) }}')" class="btn-dark" style="padding: 7px 14px; font-size: 11px; cursor: pointer;">
+                                <button type="button" onclick="showDeclinedOrderApology('{{ $orderObj->order_number ?? '#' . $orderObj->id }}', '{{ addslashes($orderObj->notes ?? 'Harvest Out of Stock') }}', 'RM {{ number_format($orderObj->total_amount ?? 0, 2) }}', false)" class="btn-dark" style="padding: 7px 14px; font-size: 11px; cursor: pointer;">
                                     View Apology Details
                                 </button>
                             </div>
                         </div>
                     @else
+                        @if($isPartial)
+                            <!-- Partial Fulfillment Notice & Remaining Delivery Active Box -->
+                            <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 14px; padding: 14px 16px; margin: 10px 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                    <div>
+                                        <div style="font-weight: 800; color: #92400e; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                                            <span>⚠️ Partial Fulfillment Notice (Out-of-Stock Item Refunded)</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: #78350f; margin-top: 4px; font-style: italic;">
+                                            "{{ $orderObj->notes ?? 'One produce item is out of stock.' }}"
+                                        </div>
+                                        <div style="font-size: 11px; color: #065f46; font-weight: 700; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+                                            <span>🚚 Remaining produce is packed & continuing out for delivery below!</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="showDeclinedOrderApology('{{ $orderObj->order_number ?? '#' . $orderObj->id }}', '{{ addslashes($orderObj->notes ?? '') }}', '', true, 'Item Out of Stock', 'Remaining crops')" class="btn-dark" style="padding: 7px 14px; font-size: 11px; cursor: pointer;">
+                                        View Partial Refund Details
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="stage-labels">
                             @foreach ($stageLabels as $i => $lbl)
                                 @if ($i + 1 === $stage)
@@ -207,18 +234,24 @@
                                         $itBatch = $itObj->batch_id ?: ($orderObj->batch_code ?? 'AF-LUN-2026-089');
                                         $itFarmer = $itObj->farmer_name ?: ($itObj->farm_name ?? 'Kedah Local Smallholder');
                                         $itLocation = $itObj->farm_location ?: 'Kedah, Malaysia';
+                                        $itDeclined = ($itObj->status ?? '') === 'declined' || (!empty($orderObj->notes) && str_contains(strtolower($orderObj->notes), strtolower($itObj->product_name)) && str_contains(strtolower($orderObj->notes), 'out of stock'));
                                     @endphp
-                                    <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                    <div style="background: {{ $itDeclined ? '#fff1f2' : '#ffffff' }}; border: 1px solid {{ $itDeclined ? '#fecaca' : '#e5e7eb' }}; border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             @if (!empty($itObj->image_path))
-                                                <img src="{{ asset($itObj->image_path) }}" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb;">
+                                                <img src="{{ asset($itObj->image_path) }}" alt="Crop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb; {{ $itDeclined ? 'filter: grayscale(1); opacity: 0.7;' : '' }}">
                                             @else
-                                                <div style="width: 36px; height: 36px; border-radius: 8px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 18px;">🥬</div>
+                                                <div style="width: 36px; height: 36px; border-radius: 8px; background: {{ $itDeclined ? '#fee2e2' : '#ecfdf5' }}; color: {{ $itDeclined ? '#dc2626' : '#059669' }}; display: flex; align-items: center; justify-content: center; font-size: 18px;">🥬</div>
                                             @endif
                                             <div>
                                                 <div style="font-size: 12px; font-weight: 800; color: #111827;">
                                                     {{ $itObj->product_name }}
                                                     <span style="font-size: 11px; font-weight: 600; color: #4b5563;">&times; {{ floatval($itObj->quantity) }} {{ $itObj->unit }}</span>
+                                                    @if ($itDeclined)
+                                                        <span style="background: #fee2e2; color: #dc2626; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-left: 4px; border: 1px solid #fecaca;">❌ Out of Stock (Refunded)</span>
+                                                    @else
+                                                        <span style="background: #ecfdf5; color: #065f46; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-left: 4px; border: 1px solid #a7f3d0;">🟢 In Delivery</span>
+                                                    @endif
                                                 </div>
                                                 <div style="font-size: 10px; color: #6b7280; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                                                     <span>👨‍🌾 <strong>{{ $itFarmer }}</strong> ({{ $itLocation }})</span>
@@ -227,10 +260,14 @@
                                             </div>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px;">
-                                            <span style="font-size: 12px; font-weight: 800; color: #111827;">RM {{ number_format($itObj->subtotal ?? ($itObj->price * $itObj->quantity), 2) }}</span>
-                                            <button type="button" onclick="openQRModal('{{ addslashes($itBatch) }}')" class="btn-primary" style="padding: 5px 10px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 8px; background: #065f46;">
-                                                <span>📱 QR Passport</span>
-                                            </button>
+                                            <span style="font-size: 12px; font-weight: 800; color: {{ $itDeclined ? '#dc2626; text-decoration: line-through;' : '#111827;' }}">RM {{ number_format($itObj->subtotal ?? ($itObj->price * $itObj->quantity), 2) }}</span>
+                                            @if ($itDeclined)
+                                                <span style="font-size: 10px; font-weight: 800; color: #dc2626; background: #fee2e2; padding: 4px 8px; border-radius: 6px;">Refunded</span>
+                                            @else
+                                                <button type="button" onclick="openQRModal('{{ addslashes($itBatch) }}')" class="btn-primary" style="padding: 5px 10px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 8px; background: #065f46;">
+                                                    <span>📱 QR Passport</span>
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 @endforeach

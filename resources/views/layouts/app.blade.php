@@ -505,7 +505,10 @@
         showDeclinedOrderApology(
             "{{ session('order_declined_alert.order_number') }}",
             "{{ addslashes(session('order_declined_alert.reason')) }}",
-            "RM {{ number_format(session('order_declined_alert.total_amount'), 2) }}"
+            "RM {{ number_format(session('order_declined_alert.total_amount'), 2) }}",
+            {{ !empty(session('order_declined_alert.is_partial')) ? 'true' : 'false' }},
+            "{{ addslashes(session('order_declined_alert.declined_items', '')) }}",
+            "{{ addslashes(session('order_declined_alert.remaining_items', '')) }}"
         );
     });
     @endif

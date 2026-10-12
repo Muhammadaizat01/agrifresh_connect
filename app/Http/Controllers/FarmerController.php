@@ -250,18 +250,91 @@ class FarmerController extends Controller
             $order = Order::with('items')->findOrFail($id);
             $reason = trim($request->input('decline_reason', 'Produce is currently Out of Stock'));
             $markSoldOut = $request->has('mark_sold_out');
+            $selectedItemIds = $request->input('decline_item_ids', []);
+            if (!is_array($selectedItemIds)) {
+                $selectedItemIds = [];
+            }
+            $selectedItemIds = array_map('intval', $selectedItemIds);
 
-            $order->status = 'Declined (Out of Stock)';
-            $order->notes = $reason;
-            $order->save();
+            $allOrderItems = $order->items ?: collect();
+            $isFullDecline = empty($selectedItemIds) || count($selectedItemIds) >= $allOrderItems->count();
 
-            // Auto-update vegetable stock to 0 in store catalog if requested
-            if ($markSoldOut && $order->items) {
-                foreach ($order->items as $item) {
-                    Product::where('name', $item->product_name)
-                        ->orWhere('name_ms', $item->product_name)
-                        ->update(['quantity_available' => 0]);
+            if ($isFullDecline) {
+                $order->status = 'Declined (Out of Stock)';
+                $order->notes = $reason;
+                $order->save();
+
+                OrderItem::where('order_id', $order->id)->update(['status' => 'declined']);
+
+                // Auto-update vegetable stock to 0 in store catalog if requested
+                if ($markSoldOut && $order->items) {
+                    foreach ($order->items as $item) {
+                        Product::where('name', $item->product_name)
+                            ->orWhere('name_ms', $item->product_name)
+                            ->update(['quantity_available' => 0]);
+                    }
                 }
+
+                $refundAmount = floatval($order->total_amount ?? 0);
+                $msgNotice = "We sincerely apologize! Your order {$order->order_number} could not be fulfilled as produce is Out of Stock. Reason: {$reason}. A full refund of RM " . number_format($refundAmount, 2) . " has been processed.";
+
+                session()->flash('order_declined_alert', [
+                    'order_number' => $order->order_number,
+                    'buyer_name' => $order->buyer_name,
+                    'reason' => $reason,
+                    'total_amount' => $refundAmount,
+                    'is_partial' => false,
+                    'declined_items' => 'All Items in Order',
+                    'remaining_items' => ''
+                ]);
+
+                $successMsg = "Order {$order->order_number} has been declined in full. Produce marked Out of Stock and buyer has been notified with 100% full refund confirmation.";
+            } else {
+                // Partial decline - keep remaining produce active for delivery!
+                $declinedItems = [];
+                $remainingItems = [];
+                $partialRefund = 0.0;
+
+                foreach ($allOrderItems as $item) {
+                    if (in_array(intval($item->id), $selectedItemIds)) {
+                        $declinedItems[] = $item;
+                        $partialRefund += floatval($item->subtotal ?? ($item->price * $item->quantity));
+                        $item->status = 'declined';
+                        $item->save();
+
+                        if ($markSoldOut) {
+                            Product::where('name', $item->product_name)
+                                ->orWhere('name_ms', $item->product_name)
+                                ->update(['quantity_available' => 0]);
+                        }
+                    } else {
+                        $remainingItems[] = $item;
+                        $item->status = 'active';
+                        $item->save();
+                    }
+                }
+
+                $decNames = implode(', ', array_map(fn($it) => $it->product_name, $declinedItems));
+                $remNames = implode(', ', array_map(fn($it) => $it->product_name, $remainingItems));
+
+                $order->status = 'Partially Fulfilled (' . count($declinedItems) . ' Item Out of Stock)';
+                $order->notes = "Partial Out of Stock: {$decNames}. Reason: {$reason}. RM " . number_format($partialRefund, 2) . " refunded. Remaining produce ({$remNames}) continues delivery.";
+                $order->save();
+
+                $refundAmount = $partialRefund;
+                $msgNotice = "Notice for order {$order->order_number}: {$decNames} is Out of Stock ({$reason}). A partial refund of RM " . number_format($partialRefund, 2) . " has been issued. Good news: Your remaining fresh produce ({$remNames}) is on track for delivery!";
+
+                session()->flash('order_declined_alert', [
+                    'order_number' => $order->order_number,
+                    'buyer_name' => $order->buyer_name,
+                    'reason' => $reason,
+                    'total_amount' => $partialRefund,
+                    'is_partial' => true,
+                    'declined_items' => $decNames,
+                    'remaining_items' => $remNames
+                ]);
+
+                $successMsg = "Order {$order->order_number} partially declined: {$decNames} marked Out of Stock (RM " . number_format($partialRefund, 2) . " refunded). Remaining produce ({$remNames}) kept active for delivery!";
             }
 
             // Notify buyer in notifications table if buyer account exists
@@ -276,10 +349,12 @@ class FarmerController extends Controller
                             'data' => json_encode([
                                 'order_id' => $order->id,
                                 'order_number' => $order->order_number,
-                                'status' => 'Declined (Out of Stock)',
+                                'status' => $isFullDecline ? 'Declined (Out of Stock)' : 'Partially Fulfilled',
                                 'reason' => $reason,
+                                'is_partial' => !$isFullDecline,
+                                'refund_amount' => $refundAmount,
                                 'total_amount' => $order->total_amount,
-                                'message' => "We sincerely apologize! Your order {$order->order_number} could not be fulfilled as produce is Out of Stock. Reason: {$reason}. A full refund has been processed.",
+                                'message' => $msgNotice,
                                 'time' => date('d M Y, h:i A')
                             ]),
                             'read_at' => null,
@@ -292,15 +367,7 @@ class FarmerController extends Controller
                 }
             }
 
-            // Save in session so buyer will see pop-up if currently in session
-            session()->flash('order_declined_alert', [
-                'order_number' => $order->order_number,
-                'buyer_name' => $order->buyer_name,
-                'reason' => $reason,
-                'total_amount' => $order->total_amount
-            ]);
-
-            return redirect()->route('farmer.dashboard')->with('success', "Order {$order->order_number} has been declined. Produce marked Out of Stock and buyer has been notified with apology and refund confirmation.");
+            return redirect()->route('farmer.dashboard')->with('success', $successMsg);
         } catch (\Throwable $e) {
             return redirect()->route('farmer.dashboard')->withErrors(['msg' => 'Could not decline order: ' . $e->getMessage()]);
         }

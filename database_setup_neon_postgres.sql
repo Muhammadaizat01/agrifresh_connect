@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   unit VARCHAR(50) DEFAULT 'kg',
   price DECIMAL(10,2) NOT NULL,
   subtotal DECIMAL(10,2) NOT NULL,
+  status VARCHAR(100) DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -298,9 +298,12 @@ $isAuth = isLoggedIn();
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     showDeclinedOrderApology(
-        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['order_number'])) ?>",
-        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['reason'])) ?>",
-        "RM <?= number_format($_SESSION['order_declined_alert']['total_amount'], 2) ?>"
+        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['order_number'] ?? '')) ?>",
+        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['reason'] ?? '')) ?>",
+        "RM <?= number_format($_SESSION['order_declined_alert']['total_amount'] ?? 0, 2) ?>",
+        <?= !empty($_SESSION['order_declined_alert']['is_partial']) ? 'true' : 'false' ?>,
+        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['declined_items'] ?? '')) ?>",
+        "<?= htmlspecialchars(addslashes($_SESSION['order_declined_alert']['remaining_items'] ?? '')) ?>"
     );
 });
 </script>

@@ -24,6 +24,18 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
+
+    // Ensure status column exists in order_items for item-level fulfillment/decline tracking
+    try {
+        if ($db_conn === 'pgsql') {
+            $pdo->exec("ALTER TABLE order_items ADD COLUMN IF NOT EXISTS status VARCHAR(100) DEFAULT 'active'");
+        } else {
+            $chkCol = $pdo->query("SHOW COLUMNS FROM order_items LIKE 'status'")->fetch();
+            if (!$chkCol) {
+                $pdo->exec("ALTER TABLE order_items ADD COLUMN status VARCHAR(100) DEFAULT 'active'");
+            }
+        }
+    } catch (\Throwable $ignored) {}
 } catch (PDOException $e) {
     die("<div style='font-family:sans-serif;padding:20px;background:#fee2e2;color:#991b1b;border-radius:12px;margin:20px;'><strong>Database Connection Notice:</strong> " . $e->getMessage() . "<br>Please ensure database credentials and host are configured properly in environment variables or phpMyAdmin.</div>");
 }

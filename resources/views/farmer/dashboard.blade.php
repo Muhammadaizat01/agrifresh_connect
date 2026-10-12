@@ -67,8 +67,8 @@
     @endif
 
     <!-- Real-Time Buyer Order Notifications Banner -->
-    @if(!$recentOrders->isEmpty())
-        @php $latestOrder = $recentOrders->first(); @endphp
+    @if(collect($recentOrders)->isNotEmpty())
+        @php $latestOrder = collect($recentOrders)->first(); @endphp
         <div style="background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 1.5px solid #10b981; border-radius: 24px; padding: 20px 24px; margin-bottom: 28px; box-shadow: 0 6px 20px rgba(16,185,129,0.12); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
             <div style="display: flex; align-items: center; gap: 16px;">
                 <div style="width: 48px; height: 48px; background: #10b981; color: #ffffff; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
@@ -394,17 +394,25 @@
                                         </thead>
                                         <tbody>
                                             @foreach($ro->items as $item)
-                                                <tr style="border-bottom: 1px solid #f3f4f6;">
+                                                @php
+                                                    $itDeclined = ($item->status ?? '') === 'declined' || (!empty($ro->notes) && str_contains(strtolower($ro->notes), strtolower($item->product_name)) && str_contains(strtolower($ro->notes), 'out of stock'));
+                                                @endphp
+                                                <tr style="border-bottom: 1px solid #f3f4f6; {{ $itDeclined ? 'background: #fff1f2;' : '' }}">
                                                     <td style="padding: 10px 12px; font-weight: 700; color: #111827;">
                                                         🌱 {{ $item->product_name }}
+                                                        @if($itDeclined)
+                                                            <span style="background: #fee2e2; color: #dc2626; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; margin-left: 6px; border: 1px solid #fecaca;">❌ Out of Stock (Refunded)</span>
+                                                        @else
+                                                            <span style="background: #ecfdf5; color: #065f46; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; margin-left: 6px; border: 1px solid #a7f3d0;">🟢 In Delivery Batch</span>
+                                                        @endif
                                                     </td>
-                                                    <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: #059669;">
+                                                    <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: {{ $itDeclined ? '#9ca3af; text-decoration: line-through;' : '#059669;' }}">
                                                         {{ number_format($item->quantity, 0) }} {{ $item->unit }}
                                                     </td>
                                                     <td style="padding: 10px 12px; text-align: right; color: #4b5563;">
                                                         RM {{ number_format($item->price, 2) }}
                                                     </td>
-                                                    <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #111827;">
+                                                    <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: {{ $itDeclined ? '#dc2626;' : '#111827;' }}">
                                                         RM {{ number_format($item->subtotal, 2) }}
                                                     </td>
                                                 </tr>
@@ -435,14 +443,23 @@
                                 <button type="button" onclick="openQRModalByBatch('{{ $ro->batch_code }}')" class="btn-dark" style="padding: 8px 16px; font-size: 11px; display: inline-flex; align-items: center; gap: 5px;">
                                     <span>🖨️ Print Crate QR Sticker</span>
                                 </button>
-                                @if(!str_contains(strtolower($ro->status ?? ''), 'decline'))
-                                    <button type="button" onclick="openDeclineOrderModal('{{ $ro->id }}', '{{ $ro->order_number }}', '{{ addslashes($ro->buyer_name) }}')" style="background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 14px; font-size: 11px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Decline if produce is out of stock and send apology">
-                                        <span>❌ Decline (Out of Stock)</span>
-                                    </button>
-                                @else
+                                @php
+                                    $isFullyDec = str_contains(strtolower($ro->status ?? ''), 'declined (out of stock)');
+                                    $isPartialDec = str_contains(strtolower($ro->status ?? ''), 'partial') || str_contains(strtolower($ro->notes ?? ''), 'partial out of stock');
+                                @endphp
+                                @if($isFullyDec)
                                     <span style="background: #fee2e2; color: #991b1b; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px;">
                                         Declined: {{ $ro->notes }}
                                     </span>
+                                @else
+                                    @if($isPartialDec)
+                                        <span style="background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; border: 1px solid #fde68a;">
+                                            ⚠️ Partial (Rest Delivering)
+                                        </span>
+                                    @endif
+                                    <button type="button" onclick="openDeclineOrderModal('{{ $ro->id }}', '{{ $ro->order_number }}', '{{ addslashes($ro->buyer_name) }}', {{ json_encode($ro->items ?? []) }})" style="background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 14px; font-size: 11px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Decline specific out-of-stock produce or entire order">
+                                        <span>❌ {{ $isPartialDec ? 'Decline More Items' : 'Decline (Out of Stock)' }}</span>
+                                    </button>
                                 @endif
                             </div>
                         </div>
@@ -720,15 +737,142 @@ function confirmDeleteProduce(id, name) {
 }
 
 // Decline Modal Handlers
-function openDeclineOrderModal(orderId, orderNum, buyerName) {
+let currentModalItems = [];
+
+function openDeclineOrderModal(orderId, orderNum, buyerName, items) {
     const modal = document.getElementById('declineOrderModalBackdrop');
     const form = document.getElementById('declineOrderForm');
     const tag = document.getElementById('declineModalOrderTag');
+    const list = document.getElementById('declineItemsList');
     if (modal && form) {
         form.action = "{{ url('/farmer-dashboard/order') }}/" + orderId + "/decline";
         if (tag) tag.innerText = 'Order: ' + orderNum + ' (' + buyerName + ')';
+        
+        currentModalItems = Array.isArray(items) ? items : [];
+        if (list) {
+            list.innerHTML = '';
+            if (currentModalItems.length === 0) {
+                list.innerHTML = '<div style="padding: 10px; color: #6b7280; font-size: 11px;">All produce items tagged to this order will be processed.</div>';
+            } else {
+                currentModalItems.forEach((it, idx) => {
+                    const sub = parseFloat(it.subtotal || (it.price * it.quantity) || 0);
+                    const isAlreadyDeclined = it.status === 'declined';
+                    const row = document.createElement('div');
+                    row.style.cssText = 'background: #ffffff; border: 1px solid #fecaca; border-radius: 10px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
+                    row.innerHTML = `
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; margin: 0;">
+                            <input type="checkbox" name="decline_item_ids[]" value="${it.id}" data-idx="${idx}" data-subtotal="${sub}" class="decline-item-chk" ${isAlreadyDeclined ? 'disabled checked' : (idx === 0 ? 'checked' : '')} onchange="updateDeclineCalculations()" style="width: 16px; height: 16px; accent-color: #dc2626;">
+                            <div>
+                                <div style="font-weight: 800; color: #111827; font-size: 12px;">🌱 ${it.product_name}</div>
+                                <div style="font-size: 10px; color: #6b7280;">Quantity: ${it.quantity} ${it.unit || 'kg'}</div>
+                            </div>
+                        </label>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 800; color: #dc2626; font-size: 12px;">RM ${sub.toFixed(2)}</div>
+                            <span class="decline-item-status-tag" id="itemStatusTag_${idx}" style="font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; ${idx === 0 || isAlreadyDeclined ? 'background: #fee2e2; color: #dc2626;' : 'background: #ecfdf5; color: #065f46;'}">
+                                ${idx === 0 || isAlreadyDeclined ? '🔴 Reject & Refund' : '🟢 Keep Delivering'}
+                            </span>
+                        </div>
+                    `;
+                    list.appendChild(row);
+                });
+            }
+        }
+        updateDeclineCalculations();
         modal.style.display = 'flex';
     }
+}
+
+function updateDeclineCalculations() {
+    const chks = document.querySelectorAll('.decline-item-chk');
+    const submitBtn = document.getElementById('declineSubmitBtn');
+    const badge = document.getElementById('declineModeBadge');
+    const refundEl = document.getElementById('declineRefundTotal');
+    const delivEl = document.getElementById('declineDeliveringTotal');
+    
+    let totalOrderVal = 0;
+    let refundVal = 0;
+    let checkedCount = 0;
+    let totalCount = chks.length;
+
+    chks.forEach(chk => {
+        const sub = parseFloat(chk.dataset.subtotal || 0);
+        const idx = chk.dataset.idx;
+        const tag = document.getElementById('itemStatusTag_' + idx);
+        totalOrderVal += sub;
+
+        if (chk.checked) {
+            checkedCount++;
+            refundVal += sub;
+            if (tag) {
+                tag.style.background = '#fee2e2';
+                tag.style.color = '#dc2626';
+                tag.innerText = '🔴 Reject & Refund';
+            }
+        } else {
+            if (tag) {
+                tag.style.background = '#ecfdf5';
+                tag.style.color = '#065f46';
+                tag.innerText = '🟢 Keep Delivering';
+            }
+        }
+    });
+
+    const delivVal = Math.max(0, totalOrderVal - refundVal);
+
+    if (refundEl) refundEl.innerText = 'RM ' + refundVal.toFixed(2);
+    if (delivEl) delivEl.innerText = 'RM ' + delivVal.toFixed(2);
+
+    if (checkedCount === 0) {
+        if (badge) {
+            badge.style.color = '#dc2626';
+            badge.innerText = '⚠️ Please check at least 1 produce item to decline.';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            const btnSpan = submitBtn.querySelector('span');
+            if (btnSpan) btnSpan.innerText = 'Select an item to decline';
+        }
+    } else if (checkedCount === totalCount || totalCount === 0) {
+        if (badge) {
+            badge.style.color = '#dc2626';
+            badge.innerText = '🔴 FULL ORDER DECLINE: All crops out of stock. Entire order cancelled & full refund issued.';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            const btnSpan = submitBtn.querySelector('span');
+            if (btnSpan) btnSpan.innerText = 'Confirm Full Order Decline & Send Apology';
+        }
+    } else {
+        if (badge) {
+            badge.style.color = '#b45309';
+            badge.innerText = `🟡 PARTIAL DECLINE (${checkedCount} of ${totalCount} items): Remaining produce will keep delivering!`;
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            const btnSpan = submitBtn.querySelector('span');
+            if (btnSpan) btnSpan.innerText = `Confirm Reject (${checkedCount} crop) & Keep Rest Delivering`;
+        }
+    }
+}
+
+function selectFirstCropOnly() {
+    const chks = document.querySelectorAll('.decline-item-chk');
+    chks.forEach((chk, idx) => {
+        if (!chk.disabled) chk.checked = (idx === 0);
+    });
+    updateDeclineCalculations();
+}
+
+function selectAllCrops() {
+    const chks = document.querySelectorAll('.decline-item-chk');
+    chks.forEach(chk => {
+        if (!chk.disabled) chk.checked = true;
+    });
+    updateDeclineCalculations();
 }
 
 function closeDeclineOrderModal() {
@@ -817,12 +961,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Modal 3: Decline Order & Out of Stock Apology Modal -->
 <div id="declineOrderModalBackdrop" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
-    <div style="background: #ffffff; width: 100%; max-width: 520px; border-radius: 28px; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+    <div style="background: #ffffff; width: 100%; max-width: 540px; border-radius: 28px; padding: 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 24px;">❌</span>
                 <div>
-                    <h3 style="font-size: 18px; font-weight: 800; color: #111827;">Decline Order & Out of Stock Notice</h3>
+                    <h3 style="font-size: 18px; font-weight: 800; color: #111827;">Decline Produce & Out-of-Stock Notice</h3>
                     <p style="font-size: 11px; color: #6b7280;" id="declineModalOrderTag">Order: ...</p>
                 </div>
             </div>
@@ -832,8 +976,41 @@ document.addEventListener('DOMContentLoaded', function() {
         <form method="POST" id="declineOrderForm" action="" style="display: flex; flex-direction: column; gap: 16px; font-size: 12px;">
             @csrf
 
-            <div style="background: #fff1f2; border: 1px solid #fecaca; border-radius: 16px; padding: 14px; color: #991b1b; line-height: 1.4;">
-                <strong>⚠️ Note to Buyer:</strong> Declining this order will instantly notify the buyer with an apology message and issue an automated refund guarantee.
+            <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 12px 14px; color: #1e40af; line-height: 1.4;">
+                <div style="font-weight: 800; font-size: 12px; margin-bottom: 2px;">💡 Flexible Item-Level Fulfillment:</div>
+                <div style="font-size: 11px;">You can decline <strong>only the specific produce item</strong> that is out of stock. The <strong>remaining produce will keep delivering</strong> to the buyer, and a partial refund will be issued!</div>
+            </div>
+
+            <!-- Vegetable / Crop Selection Section -->
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+                    <label style="font-weight: 800; color: #991b1b; font-size: 12px;">Select Out-of-Stock Produce to Decline:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" onclick="selectFirstCropOnly()" style="background: #ffffff; border: 1px solid #fca5a5; color: #b91c1c; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Select 1st Crop Only</button>
+                        <button type="button" onclick="selectAllCrops()" style="background: #ffffff; border: 1px solid #fca5a5; color: #b91c1c; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Select All</button>
+                    </div>
+                </div>
+
+                <div id="declineItemsList" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Items rendered dynamically via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Dynamic Fulfillment Summary Calculation Box -->
+            <div id="declineSummaryBox" style="background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 12px 14px;">
+                <div id="declineModeBadge" style="font-size: 11px; font-weight: 800; margin-bottom: 8px; color: #b45309;">
+                    🟡 Partial Decline: Remaining produce will proceed for delivery
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px;">
+                    <div style="background: #ffffff; padding: 8px 10px; border-radius: 10px; border: 1px solid #fecaca;">
+                        <div style="color: #6b7280; font-size: 10px; font-weight: 700;">💰 Refund to Buyer:</div>
+                        <div id="declineRefundTotal" style="font-size: 14px; font-weight: 900; color: #dc2626; margin-top: 2px;">RM 0.00</div>
+                    </div>
+                    <div style="background: #ffffff; padding: 8px 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
+                        <div style="color: #6b7280; font-size: 10px; font-weight: 700;">🚚 Delivering to Buyer:</div>
+                        <div id="declineDeliveringTotal" style="font-size: 14px; font-weight: 900; color: #059669; margin-top: 2px;">RM 0.00</div>
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -850,14 +1027,15 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="background: #f9fafb; padding: 12px; border-radius: 12px; border: 1px solid #f3f4f6;">
                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #111827;">
                     <input type="checkbox" name="mark_sold_out" value="1" checked style="width: 16px; height: 16px; accent-color: #dc2626;">
-                    <span>Automatically mark this produce as 🔴 SOLD OUT (0 stock) in store catalog</span>
+                    <span>Automatically mark selected produce as 🔴 SOLD OUT (0 stock) in store catalog</span>
                 </label>
+                <div style="font-size: 10px; color: #6b7280; margin-left: 26px; margin-top: 2px;">(Only the declined produce item will be set to 0 stock, keeping your other produce available!)</div>
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                 <button type="button" onclick="closeDeclineOrderModal()" class="btn-dark" style="padding: 10px 18px; font-size: 12px; cursor: pointer;">Cancel</button>
-                <button type="submit" style="background: #dc2626; color: #ffffff; border: none; border-radius: 12px; padding: 10px 22px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(220,38,38,0.3);">
-                    <span>Confirm Decline & Send Apology</span>
+                <button type="submit" id="declineSubmitBtn" style="background: #dc2626; color: #ffffff; border: none; border-radius: 12px; padding: 10px 22px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(220,38,38,0.3);">
+                    <span>Confirm & Send Apology</span>
                 </button>
             </div>
         </form>
